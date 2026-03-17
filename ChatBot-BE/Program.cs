@@ -131,8 +131,6 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
-
 app.UseCors("LocalFrontend");
 
 app.UseAuthorization();

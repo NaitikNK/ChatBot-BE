@@ -1,4 +1,5 @@
 using ChatBot_BE.Services;
+using Microsoft.SemanticKernel;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -96,7 +97,29 @@ builder.Services.AddCors(options =>
 // In-memory persistence (no database)
 builder.Services.AddSingleton<IUserStore, InMemoryUserStore>();
 builder.Services.AddSingleton<IChatSessionStore, InMemoryChatSessionStore>();
-builder.Services.AddHttpClient<GeminiClient>();
+
+// Semantic Kernel setup with Gemini
+var geminiApiKey = builder.Configuration["Gemini:ApiKey"]
+    ?? throw new InvalidOperationException("Missing Gemini:ApiKey in configuration.");
+var geminiModel = builder.Configuration["Gemini:Model"]
+    ?? throw new InvalidOperationException("Missing Gemini:Model in configuration.");
+
+builder.Services.AddScoped<UserManagementPlugin>();
+builder.Services.AddScoped(sp =>
+{
+    var kernelBuilder = Kernel.CreateBuilder();
+
+    kernelBuilder.AddGoogleAIGeminiChatCompletion(
+        modelId: geminiModel,
+        apiKey: geminiApiKey);
+
+    var plugin = sp.GetRequiredService<UserManagementPlugin>();
+    kernelBuilder.Plugins.AddFromObject(plugin, "UserManagement");
+
+    return kernelBuilder.Build();
+});
+builder.Services.AddScoped(sp => sp.GetRequiredService<Kernel>()
+    .GetRequiredService<Microsoft.SemanticKernel.ChatCompletion.IChatCompletionService>());
 builder.Services.AddScoped<IAIService, AIService>();
 
 var app = builder.Build();

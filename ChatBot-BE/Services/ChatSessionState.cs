@@ -1,31 +1,55 @@
-using ChatBot_BE.Models;
+using Microsoft.SemanticKernel.ChatCompletion;
 
 namespace ChatBot_BE.Services
 {
     public class ChatSessionState
     {
-        public List<ConversationMessage> History { get; set; } = new();
+        public ChatHistory History { get; set; } = new();
 
-        public void AddUserMessage(string content)
+        /// <summary>
+        /// Trims conversation history to prevent token limit issues.
+        /// Keeps the system message (index 0) plus the last N user/assistant messages.
+        /// </summary>
+        public void TrimHistory()
         {
-            History.Add(new ConversationMessage { Role = "user", Content = content });
-            TrimHistory();
-        }
+            const int MaxMessages = 20; // Keep last 20 messages (excluding system message)
 
-        public void AddModelMessage(string content)
-        {
-            History.Add(new ConversationMessage { Role = "model", Content = content });
-            TrimHistory();
-        }
-
-        private void TrimHistory()
-        {
-            const int MaxMessages = 20; // Keep last 20 messages to prevent token limit issues
-            if (History.Count > MaxMessages)
+            // Count non-system messages
+            int nonSystemCount = 0;
+            for (int i = 0; i < History.Count; i++)
             {
-                History.RemoveRange(0, History.Count - MaxMessages);
+                if (History[i].Role != AuthorRole.System)
+                    nonSystemCount++;
+            }
+
+            if (nonSystemCount <= MaxMessages) return;
+
+            int toRemove = nonSystemCount - MaxMessages;
+            int removed = 0;
+
+            for (int i = History.Count - 1; i >= 0 && removed < toRemove; i--)
+            {
+                // Find the earliest non-system messages to remove
+            }
+
+            // Rebuild: keep system message + trim oldest non-system messages
+            var systemMessages = History.Where(m => m.Role == AuthorRole.System).ToList();
+            var otherMessages = History.Where(m => m.Role != AuthorRole.System).ToList();
+
+            if (otherMessages.Count > MaxMessages)
+            {
+                otherMessages = otherMessages.Skip(otherMessages.Count - MaxMessages).ToList();
+            }
+
+            History = new ChatHistory();
+            foreach (var msg in systemMessages)
+            {
+                History.Add(msg);
+            }
+            foreach (var msg in otherMessages)
+            {
+                History.Add(msg);
             }
         }
     }
 }
-

@@ -1,0 +1,17 @@
+**/.git
+**/.vs
+**/.vscode
+**/bin
+**/obj
+**/out
+**/publish
+**/node_modules
+**/*.user
+**/*.log
+**/server.log
+**/.dotnet_cli_home
+**/.dotnet_home
+**/Migrations
+*.md
+.gitignore
+.gitattributes

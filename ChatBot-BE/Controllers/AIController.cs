@@ -1,6 +1,7 @@
 using ChatBot_BE.Models;
 using ChatBot_BE.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -8,18 +9,52 @@ namespace ChatBot_BE.Controllers
 {
     [ApiController]
     [Route("api/ai")]
+    [EnableRateLimiting("fixed")]
     public class AIController : ControllerBase
     {
         private readonly IAIService _aiService;
+        private readonly IInputValidator _inputValidator;
 
-        public AIController(IAIService aiService)
+        public AIController(IAIService aiService, IInputValidator inputValidator)
         {
             _aiService = aiService;
+            _inputValidator = inputValidator;
         }
 
         [HttpPost("chat")]
         public async Task<IActionResult> Chat([FromBody] ChatRequest request)
         {
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage)
+                    .ToList();
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Error = string.Join("; ", errors)
+                });
+            }
+
+            // Validate input (profanity check, spell check)
+            var validationResult = _inputValidator.Validate(request.Message);
+            if (!validationResult.IsValid)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Error = validationResult.ErrorMessage
+                });
+            }
+
+            // Use corrected text if spelling was fixed
+            if (!string.IsNullOrEmpty(validationResult.CorrectedText) && 
+                validationResult.CorrectedText != request.Message)
+            {
+                request.Message = validationResult.CorrectedText;
+            }
+
             const string cookieName = "conversationId";
 
             var conversationId =
@@ -44,7 +79,15 @@ namespace ChatBot_BE.Controllers
             });
 
             var result = await _aiService.GetResponse(request);
-            return Ok(new { answer = result.Answer, conversationId = result.ConversationId });
+            return Ok(new ApiResponse<ChatReply> 
+            { 
+                Success = true, 
+                Data = new ChatReply 
+                { 
+                    Answer = result.Answer, 
+                    ConversationId = result.ConversationId 
+                } 
+            });
         }
 
         private static string ToShortHash(string input)

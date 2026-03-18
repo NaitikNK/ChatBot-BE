@@ -17,26 +17,38 @@ namespace ChatBot_BE.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<List<UserResponse>>> GetAll()
+        public async Task<ActionResult<ApiResponse<List<UserResponse>>>> GetAll()
         {
             var users = await _users.GetAllAsync();
-            return Ok(users.Select(ToResponse).ToList());
+            return Ok(new ApiResponse<List<UserResponse>>
+            {
+                Success = true,
+                Data = users.Select(ToResponse).ToList()
+            });
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<UserResponse>> Get(int id)
+        public async Task<ActionResult<ApiResponse<UserResponse>>> Get(int id)
         {
             var user = await _users.GetAsync(id);
-            if (user == null) return NotFound();
-            return Ok(ToResponse(user));
+            if (user == null) return NotFound(new ApiResponse<UserResponse> { Success = false, Error = "Not found." });
+            return Ok(new ApiResponse<UserResponse>
+            {
+                Success = true,
+                Data = ToResponse(user)
+            });
         }
 
         [HttpGet("by-policy/{policyNumber}")]
-        public async Task<ActionResult<UserResponse>> GetByPolicyNumber(string policyNumber)
+        public async Task<ActionResult<ApiResponse<UserResponse>>> GetByPolicyNumber(string policyNumber)
         {
             var user = await _users.GetByPolicyNumberAsync(policyNumber);
-            if (user == null) return NotFound();
-            return Ok(ToResponse(user));
+            if (user == null) return NotFound(new ApiResponse<UserResponse> { Success = false, Error = "Not found." });
+            return Ok(new ApiResponse<UserResponse>
+            {
+                Success = true,
+                Data = ToResponse(user)
+            });
         }
 
         [HttpPost]

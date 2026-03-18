@@ -10,6 +10,7 @@ namespace ChatBot_BE.Services
         private readonly Kernel _kernel;
         private readonly IChatCompletionService _chatCompletion;
         private readonly IChatSessionStore _sessions;
+        private readonly IConversationContext _context;
         private readonly UserManagementPlugin _plugin;
         private readonly ILogger<AIService> _logger;
 
@@ -17,12 +18,14 @@ namespace ChatBot_BE.Services
             Kernel kernel,
             IChatCompletionService chatCompletion,
             IChatSessionStore sessions,
+            IConversationContext context,
             UserManagementPlugin plugin,
             ILogger<AIService> logger)
         {
             _kernel = kernel;
             _chatCompletion = chatCompletion;
             _sessions = sessions;
+            _context = context;
             _plugin = plugin;
             _logger = logger;
         }
@@ -44,7 +47,7 @@ namespace ChatBot_BE.Services
             }
 
             // Set the conversation context on the plugin so it can do session-ownership checks
-            _plugin.ConversationId = conversationId;
+            _context.ConversationId = conversationId;
 
             var session = _sessions.GetOrCreate(conversationId);
 
@@ -65,6 +68,9 @@ namespace ChatBot_BE.Services
 
             try
             {
+                _logger.LogDebug("Sending message to Gemini. ConversationId: {ConversationId}, MessageLength: {Length}",
+                    conversationId, message.Length);
+
                 var response = await _chatCompletion.GetChatMessageContentAsync(
                     session.History,
                     executionSettings,
@@ -78,6 +84,9 @@ namespace ChatBot_BE.Services
                 // Trim history to prevent token limit issues
                 session.TrimHistory();
 
+                _logger.LogDebug("Received response from Gemini. ConversationId: {ConversationId}, AnswerLength: {Length}",
+                    conversationId, answer.Length);
+
                 return new ChatReply
                 {
                     ConversationId = conversationId,
@@ -86,12 +95,10 @@ namespace ChatBot_BE.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to get response from Gemini via Semantic Kernel. Message: {Msg}, Inner: {Inner}",
-                    ex.Message, ex.InnerException?.Message ?? "none");
-
-                // Temporarily write full error to a file for debugging
-                var errorDetails = $"[{DateTime.UtcNow:O}] Exception: {ex.GetType().FullName}\nMessage: {ex.Message}\nInner: {ex.InnerException?.Message}\nInnerType: {ex.InnerException?.GetType().FullName}\nStack: {ex.StackTrace}";
-                await File.AppendAllTextAsync("error_log.txt", errorDetails + "\n\n");
+                _logger.LogError(ex, 
+                    "Failed to get response from Gemini. Message: {Message}, InnerException: {InnerException}",
+                    ex.Message, 
+                    ex.InnerException?.Message ?? "none");
 
                 // Remove the user message we just added since we failed
                 if (session.History.Count > 0)

@@ -1,7 +1,29 @@
 using ChatBot_BE.Services;
 using Microsoft.SemanticKernel;
+using Serilog;
+using Serilog.Events;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configure Serilog
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Debug()
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+    .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+    .MinimumLevel.Override("Microsoft.SemanticKernel", LogEventLevel.Information)
+    .Enrich.FromLogContext()
+    .Enrich.WithThreadId()
+    .WriteTo.Console(
+        outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
+    .WriteTo.File(
+        path: "logs/chatbot-.log",
+        rollingInterval: RollingInterval.Day,
+        retainedFileCountLimit: 7,
+        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
+    .CreateLogger();
+
+builder.Host.UseSerilog();
 
 static string[] GetValidatedCorsOrigins(IConfiguration configuration, string configKey)
 {
@@ -82,6 +104,39 @@ builder.Services.AddMemoryCache();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Configure rate limiting
+builder.Services.AddRateLimiter(rateLimiterOptions =>
+{
+    // Global limiter for all endpoints
+    rateLimiterOptions.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 30,
+                Window = TimeSpan.FromMinutes(1)
+            }));
+
+    // Stricter limiter for AI endpoints
+    rateLimiterOptions.AddPolicy("fixed", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1)
+            }));
+
+    rateLimiterOptions.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    rateLimiterOptions.OnRejected = async (context, token) =>
+    {
+        context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        context.HttpContext.Response.Headers.ContentType = "application/json";
+        var response = new { error = "Too many requests. Please try again later." };
+        await context.HttpContext.Response.WriteAsJsonAsync(response, token);
+    };
+});
+
 var localFrontendOrigins = GetValidatedCorsOrigins(builder.Configuration, "Cors:LocalFrontend:Origins");
 
 // Allow configured frontends to call this API
@@ -97,6 +152,14 @@ builder.Services.AddCors(options =>
 // In-memory persistence (no database)
 builder.Services.AddSingleton<IUserStore, InMemoryUserStore>();
 builder.Services.AddSingleton<IChatSessionStore, InMemoryChatSessionStore>();
+
+// Scoped conversation context for plugin access
+builder.Services.AddScoped<IConversationContext, ConversationContext>();
+
+// Input validation services
+builder.Services.AddSingleton<IProfanityFilter, ProfanityFilter>();
+builder.Services.AddSingleton<ISpellChecker, SpellChecker>();
+builder.Services.AddScoped<IInputValidator, InputValidator>();
 
 // Semantic Kernel setup with Gemini
 var geminiApiKey = builder.Configuration["Gemini:ApiKey"]
@@ -130,9 +193,13 @@ app.UseSwaggerUI();
 
 app.UseCors("LocalFrontend");
 
+app.UseRateLimiter();
+
 app.UseAuthorization();
 
 app.MapControllers();
 
 app.Run();
 
+// Make Program visible for testing
+public partial class Program { }

@@ -11,7 +11,7 @@ namespace ChatBot_BE.Services
     public interface IPolicyService
     {
         Task<List<DropdownOptionDto>> GetPolicyTypesAsync();
-        Task<List<DropdownOptionDto>> GetPolicyNamesByTypeAsync(int typeId);
+        Task<List<DropdownOptionDto>> GetPolicyNamesByTypeAsync(string typeId);
     }
 
     public class PolicyService : IPolicyService
@@ -35,10 +35,24 @@ namespace ChatBot_BE.Services
             }).ToList();
         }
 
-        public async Task<List<DropdownOptionDto>> GetPolicyNamesByTypeAsync(int typeId)
+        public async Task<List<DropdownOptionDto>> GetPolicyNamesByTypeAsync(string typeId)
         {
+            int numericTypeId;
+            if (!int.TryParse(typeId, out numericTypeId))
+            {
+                // If not a number, try to find the type by name (case-insensitive)
+                var type = await _context.PolicyTypes
+                    .FirstOrDefaultAsync(t => t.Name.ToLower() == typeId.ToLower());
+                
+                if (type == null)
+                {
+                    return new List<DropdownOptionDto>();
+                }
+                numericTypeId = type.Id;
+            }
+
             var names = await _context.PolicyNames
-                .Where(n => n.PolicyTypeId == typeId)
+                .Where(n => n.PolicyTypeId == numericTypeId)
                 .ToListAsync();
 
             return names.Select(n => new DropdownOptionDto

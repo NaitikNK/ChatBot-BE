@@ -28,11 +28,11 @@ namespace ChatBot_BE.Controllers
         }
 
         [HttpGet("names")]
-        public async Task<ActionResult<ApiResponse<List<DropdownOptionDto>>>> GetPolicyNames([FromQuery] int? typeId, [FromQuery] int? type)
+        public async Task<ActionResult<ApiResponse<List<DropdownOptionDto>>>> GetPolicyNames([FromQuery] string? typeId, [FromQuery] string? type)
         {
             var efficientTypeId = typeId ?? type;
 
-            if (efficientTypeId == null)
+            if (string.IsNullOrEmpty(efficientTypeId))
             {
                 return BadRequest(new ApiResponse<List<DropdownOptionDto>>
                 {
@@ -41,7 +41,7 @@ namespace ChatBot_BE.Controllers
                 });
             }
 
-            var names = await _policyService.GetPolicyNamesByTypeAsync(efficientTypeId.Value);
+            var names = await _policyService.GetPolicyNamesByTypeAsync(efficientTypeId);
 
             return Ok(new ApiResponse<List<DropdownOptionDto>>
             {

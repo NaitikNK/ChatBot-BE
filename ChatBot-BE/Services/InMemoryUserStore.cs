@@ -1,5 +1,5 @@
 using System.Threading;
-using ChatBot_BE.Data;
+using ChatBot_BE.Model;
 using System.Text.RegularExpressions;
 
 namespace ChatBot_BE.Services
@@ -20,6 +20,22 @@ namespace ChatBot_BE.Services
                     .OrderByDescending(u => u.CreatedAt)
                     .ToList();
                 return Task.FromResult(users);
+            }
+        }
+
+        public Task<(List<User> Users, int TotalCount)> GetPagedAsync(int pageNumber, int pageSize)
+        {
+            lock (_lock)
+            {
+                var users = _users.Values
+                    .OrderByDescending(u => u.CreatedAt)
+                    .Skip((pageNumber - 1) * pageSize)
+                    .Take(pageSize)
+                    .Select(Clone)
+                    .ToList();
+
+                var totalCount = _users.Count;
+                return Task.FromResult((users, totalCount));
             }
         }
 
@@ -67,7 +83,17 @@ namespace ChatBot_BE.Services
                 LastName = user.LastName,
                 PolicyNumber = policy,
                 Email = email,
-                CreatedAt = DateTime.UtcNow
+                PolicyType = user.PolicyType,
+                PolicyName = user.PolicyName,
+                PhoneNumber = user.PhoneNumber,
+                Address = user.Address,
+                City = user.City,
+                State = user.State,
+                PostalCode = user.PostalCode,
+                Country = user.Country,
+                DateOfBirth = user.DateOfBirth,
+                CreatedAt = DateTime.UtcNow,
+                OwnerSessionId = user.OwnerSessionId
             };
 
             lock (_lock)
@@ -126,6 +152,16 @@ namespace ChatBot_BE.Services
 
                 existing.FirstName = updated.FirstName;
                 existing.LastName = updated.LastName;
+                existing.PolicyType = updated.PolicyType;
+                existing.PolicyName = updated.PolicyName;
+                existing.PhoneNumber = updated.PhoneNumber;
+                existing.Address = updated.Address;
+                existing.City = updated.City;
+                existing.State = updated.State;
+                existing.PostalCode = updated.PostalCode;
+                existing.Country = updated.Country;
+                existing.DateOfBirth = updated.DateOfBirth;
+                existing.UpdatedAt = updated.UpdatedAt;
                 return Task.FromResult(true);
             }
         }
@@ -177,8 +213,18 @@ namespace ChatBot_BE.Services
                 LastName = user.LastName,
                 PolicyNumber = user.PolicyNumber,
                 Email = user.Email,
-                OwnerSessionId = user.OwnerSessionId,
-                CreatedAt = user.CreatedAt
+                PolicyType = user.PolicyType,
+                PolicyName = user.PolicyName,
+                PhoneNumber = user.PhoneNumber,
+                Address = user.Address,
+                City = user.City,
+                State = user.State,
+                PostalCode = user.PostalCode,
+                Country = user.Country,
+                DateOfBirth = user.DateOfBirth,
+                CreatedAt = user.CreatedAt,
+                UpdatedAt = user.UpdatedAt,
+                OwnerSessionId = user.OwnerSessionId
             };
         }
     }

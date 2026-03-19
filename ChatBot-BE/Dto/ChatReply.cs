@@ -1,4 +1,4 @@
-namespace ChatBot_BE.Models
+namespace ChatBot_BE.Dto
 {
     public class ChatReply
     {
@@ -6,4 +6,3 @@ namespace ChatBot_BE.Models
         public string Answer { get; set; } = string.Empty;
     }
 }
-

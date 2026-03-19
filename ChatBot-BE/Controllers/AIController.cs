@@ -1,4 +1,4 @@
-using ChatBot_BE.Models;
+using ChatBot_BE.Dto;
 using ChatBot_BE.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;

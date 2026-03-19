@@ -1,4 +1,4 @@
-namespace ChatBot_BE.Models
+namespace ChatBot_BE.Dto
 {
     public class ApiResponse<T>
     {
@@ -7,4 +7,3 @@ namespace ChatBot_BE.Models
         public string? Error { get; set; }
     }
 }
-

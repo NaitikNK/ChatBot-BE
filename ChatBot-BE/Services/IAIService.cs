@@ -1,7 +1,9 @@
+using ChatBot_BE.Dto;
+
 namespace ChatBot_BE.Services
 {
     public interface IAIService
     {
-        Task<ChatBot_BE.Models.ChatReply> GetResponse(ChatBot_BE.Models.ChatRequest request);
+        Task<ChatReply> GetResponse(ChatRequest request);
     }
 }

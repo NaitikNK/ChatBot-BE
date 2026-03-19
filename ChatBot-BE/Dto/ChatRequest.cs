@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace ChatBot_BE.Models
+namespace ChatBot_BE.Dto
 {
     public class ChatRequest
     {

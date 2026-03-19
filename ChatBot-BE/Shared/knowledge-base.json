@@ -1,0 +1,398 @@
+{
+  "Documents": [
+    {
+      "Id": "kb-001",
+      "Title": "What is an Insurance Policy?",
+      "Content": "An insurance policy is a legal contract between you (the policyholder) and an insurance company. In exchange for premium payments, the insurance company agrees to pay for certain losses or damages covered under the policy terms. The policy outlines what is covered, what is excluded, coverage limits, and your responsibilities as a policyholder.",
+      "Category": "Policy Basics",
+      "PolicyType": "Personal",
+      "PolicyName": "General Insurance"
+    },
+    {
+      "Id": "kb-002",
+      "Title": "Understanding Premium Payments",
+      "Content": "A premium is the amount you pay to the insurance company for coverage. Premiums can be paid monthly, quarterly, or annually. Failure to pay premiums on time may result in policy cancellation. Premium amounts are based on factors like coverage type, risk level, deductibles, and your insurance history.",
+      "Category": "Payments",
+      "PolicyType": "Personal",
+      "PolicyName": "General Insurance"
+    },
+    {
+      "Id": "kb-003",
+      "Title": "What is a Deductible?",
+      "Content": "A deductible is the amount you must pay out-of-pocket before your insurance coverage kicks in. For example, if you have a $500 deductible and file a claim for $2,000, you pay $500 and the insurance company pays $1,500. Higher deductibles typically result in lower premiums, but you'll pay more when filing a claim.",
+      "Category": "Coverage",
+      "PolicyType": "Personal",
+      "PolicyName": "General Insurance"
+    },
+    {
+      "Id": "kb-004",
+      "Title": "How to File a Claim",
+      "Content": "To file an insurance claim: 1) Contact your insurance company as soon as possible after an incident. 2) Provide all necessary documentation (photos, police reports, receipts). 3) Cooperate with the claims adjuster's investigation. 4) Review the settlement offer carefully. 5) If approved, you'll receive payment minus your deductible.",
+      "Category": "Claims",
+      "PolicyType": "Personal",
+      "PolicyName": "General Insurance"
+    },
+    {
+      "Id": "kb-005",
+      "Title": "Policy Coverage Limits",
+      "Content": "Coverage limits are the maximum amount an insurance company will pay for a covered loss. Policies may have per-occurrence limits, annual aggregate limits, or lifetime limits. It's important to review your limits to ensure adequate protection. You can often increase limits for additional premium.",
+      "Category": "Coverage",
+      "PolicyType": "Personal",
+      "PolicyName": "General Insurance"
+    },
+    {
+      "Id": "kb-006",
+      "Title": "Policy Exclusions",
+      "Content": "Exclusions are situations or types of damage that your policy does NOT cover. Common exclusions include intentional damage, wear and tear, flood damage (in standard policies), earthquake damage, and business-related activities. Always review exclusions carefully to understand gaps in coverage.",
+      "Category": "Policy Basics",
+      "PolicyType": "Personal",
+      "PolicyName": "General Insurance"
+    },
+    {
+      "Id": "kb-007",
+      "Title": "Updating Your Policy Information",
+      "Content": "You should update your policy information whenever you experience major life changes: moving to a new address, getting married, having children, buying expensive items, or starting a home business. Contact your insurance company to make changes. Some changes may affect your premium.",
+      "Category": "Policy Management",
+      "PolicyType": "Personal",
+      "PolicyName": "General Insurance"
+    },
+    {
+      "Id": "kb-008",
+      "Title": "Canceling an Insurance Policy",
+      "Content": "To cancel a policy, contact your insurance company in writing. You may receive a refund for unused prepaid premiums. Be aware that canceling coverage may affect future insurability and rates. Consider having new coverage in place before canceling existing coverage to avoid gaps.",
+      "Category": "Policy Management",
+      "PolicyType": "Personal",
+      "PolicyName": "General Insurance"
+    },
+    {
+      "Id": "kb-009",
+      "Title": "Understanding Your Policy Number",
+      "Content": "Your policy number is a unique identifier for your insurance policy. It's typically 8-12 digits/letters found on your policy documents and insurance card. You'll need this number when filing claims, making payments, or contacting customer service. Keep it in a safe place.",
+      "Category": "Policy Basics",
+      "PolicyType": "Personal",
+      "PolicyName": "General Insurance"
+    },
+    {
+      "Id": "kb-010",
+      "Title": "Claims Processing Timeline",
+      "Content": "Claims processing times vary by complexity. Simple claims may be processed in a few days, while complex claims can take weeks or months. The insurance company must acknowledge your claim promptly, investigate thoroughly, and make a decision within timeframes set by state regulations. You'll receive updates throughout the process.",
+      "Category": "Claims",
+      "PolicyType": "Personal",
+      "PolicyName": "General Insurance"
+    },
+    {
+      "Id": "kb-011",
+      "Title": "What to Do After an Accident",
+      "Content": "After an accident: 1) Ensure everyone's safety and call emergency services if needed. 2) Exchange information with other parties. 3) Document the scene with photos. 4) Get witness contact information. 5) File a police report if required. 6) Notify your insurance company promptly. 7) Keep records of all related expenses.",
+      "Category": "Claims",
+      "PolicyType": "Personal",
+      "PolicyName": "General Insurance"
+    },
+    {
+      "Id": "kb-012",
+      "Title": "Policy Renewal Process",
+      "Content": "Insurance policies typically renew automatically unless you or the company cancel. Before renewal, you'll receive a renewal notice with any premium changes. Review the terms carefully. You can shop around for better rates before renewing. Contact your insurer if you have questions about renewal terms or want to make changes.",
+      "Category": "Policy Management",
+      "PolicyType": "Personal",
+      "PolicyName": "General Insurance"
+    },
+
+    {
+      "Id": "kb-v001",
+      "Title": "Overview of Vehicle Insurance",
+      "Content": "Vehicle insurance (also called auto or motor insurance) protects you financially if your vehicle is involved in an accident, theft, or other incident. It is legally required in most countries and states. A vehicle insurance policy can cover damage to your own vehicle, damage or injury caused to others, medical expenses, and more. Choosing the right type depends on your vehicle's value, your budget, and your risk tolerance.",
+      "Category": "Vehicle Insurance",
+      "PolicyType": "Vehicle",
+      "PolicyName": "Auto Insurance"
+    },
+    {
+      "Id": "kb-v002",
+      "Title": "Third-Party Liability Insurance",
+      "Content": "Third-Party Liability Insurance is the most basic and legally mandated type of vehicle insurance. It covers damage or injuries you cause to another person (the third party) — their vehicle, property, or body — in an accident where you are at fault. It does NOT cover your own vehicle or your own injuries. This is the minimum legal requirement in most regions and is typically the most affordable option. It is suitable for older vehicles with low market value.",
+      "Category": "Vehicle Insurance",
+      "PolicyType": "Vehicle",
+      "PolicyName": "Auto Insurance"
+    },
+    {
+      "Id": "kb-v003",
+      "Title": "Third-Party, Fire and Theft Insurance",
+      "Content": "Third-Party, Fire and Theft (TPFT) insurance builds on basic third-party liability coverage by also covering your own vehicle if it is stolen or damaged by fire. It does not cover damage to your own vehicle from accidents you caused. TPFT is a mid-range option, often chosen for moderately valued vehicles where full comprehensive cover is too expensive but some own-vehicle protection is still desired.",
+      "Category": "Vehicle Insurance",
+      "PolicyType": "Vehicle",
+      "PolicyName": "Auto Insurance"
+    },
+    {
+      "Id": "kb-v004",
+      "Title": "Comprehensive Vehicle Insurance",
+      "Content": "Comprehensive insurance is the highest level of vehicle coverage available. It covers third-party liabilities AND damage to your own vehicle, regardless of who is at fault. This includes accidents, theft, fire, vandalism, natural disasters (floods, hailstorms), and falling objects. Comprehensive coverage is recommended for new, leased, or high-value vehicles. While premiums are higher, this policy offers maximum financial protection.",
+      "Category": "Vehicle Insurance",
+      "PolicyType": "Vehicle",
+      "PolicyName": "Auto Insurance"
+    },
+    {
+      "Id": "kb-v005",
+      "Title": "Collision Coverage",
+      "Content": "Collision coverage pays for repairs to your own vehicle after a collision with another vehicle or object (like a guardrail or tree), regardless of fault. It is often sold as an add-on or included in comprehensive plans. If your car is totaled, collision coverage pays out the actual cash value (ACV) of your vehicle minus your deductible. This coverage is typically required if you have an auto loan or lease.",
+      "Category": "Vehicle Insurance",
+      "PolicyType": "Vehicle",
+      "PolicyName": "Auto Insurance"
+    },
+    {
+      "Id": "kb-v006",
+      "Title": "Personal Injury Protection (PIP) / Medical Payments Coverage",
+      "Content": "Personal Injury Protection (PIP), also known as no-fault insurance, covers medical expenses for you and your passengers regardless of who caused the accident. It may also cover lost wages, rehabilitation costs, and funeral expenses. Medical Payments (MedPay) is a similar but more limited version that only covers medical bills. PIP is mandatory in no-fault states and highly recommended for drivers without strong health insurance.",
+      "Category": "Vehicle Insurance",
+      "PolicyType": "Vehicle",
+      "PolicyName": "Auto Insurance"
+    },
+    {
+      "Id": "kb-v007",
+      "Title": "Uninsured and Underinsured Motorist Coverage",
+      "Content": "Uninsured Motorist (UM) coverage protects you when you are hit by a driver who has no insurance. Underinsured Motorist (UIM) coverage applies when the at-fault driver has insurance but their limits are too low to cover your total damages. Both types can cover your medical expenses, lost wages, and vehicle repair costs. Many states require at least one of these coverages, and they are strongly recommended as a safety net.",
+      "Category": "Vehicle Insurance",
+      "PolicyType": "Vehicle",
+      "PolicyName": "Auto Insurance"
+    },
+    {
+      "Id": "kb-v008",
+      "Title": "Roadside Assistance Coverage",
+      "Content": "Roadside Assistance coverage provides help when your vehicle breaks down on the road. Services typically include towing to the nearest garage, battery jump-start, flat tyre change, fuel delivery, and lockout assistance (if you are locked out of your vehicle). This coverage is usually an affordable add-on to any policy and is especially useful for older vehicles or long-distance drivers.",
+      "Category": "Vehicle Insurance",
+      "PolicyType": "Vehicle",
+      "PolicyName": "Auto Insurance"
+    },
+    {
+      "Id": "kb-v009",
+      "Title": "Rental Reimbursement Coverage",
+      "Content": "Rental Reimbursement coverage pays for a temporary rental vehicle while your car is being repaired after a covered claim. Without this coverage, you would pay out-of-pocket for a rental. Coverage limits are usually expressed as a daily amount (e.g., $30/day) up to a total cap (e.g., $900). This add-on is ideal for people who rely heavily on their vehicle for daily commuting.",
+      "Category": "Vehicle Insurance",
+      "PolicyType": "Vehicle",
+      "PolicyName": "Auto Insurance"
+    },
+    {
+      "Id": "kb-v010",
+      "Title": "Gap Insurance (Guaranteed Asset Protection)",
+      "Content": "Gap Insurance covers the difference ('gap') between what you owe on your car loan or lease and the actual cash value (ACV) of your vehicle if it is totaled or stolen. Because vehicles depreciate quickly, you could owe more on a loan than your car is worth. For example, if your car is worth $18,000 but you owe $22,000, gap insurance pays the remaining $4,000. It is strongly recommended for new vehicles purchased with a loan or lease.",
+      "Category": "Vehicle Insurance",
+      "PolicyType": "Vehicle",
+      "PolicyName": "Auto Insurance"
+    },
+    {
+      "Id": "kb-v011",
+      "Title": "Zero Depreciation (Nil Dep) Vehicle Insurance",
+      "Content": "Zero Depreciation, also called Nil Depreciation or Bumper-to-Bumper insurance, is an add-on that waives the depreciation deduction on vehicle parts during a claim. Normally, insurers deduct depreciation from the claim payout based on the age and condition of parts. With zero depreciation cover, you receive the full cost of repairs without any depreciation cut. This add-on is highly beneficial for new vehicles within the first 3-5 years.",
+      "Category": "Vehicle Insurance",
+      "PolicyType": "Vehicle",
+      "PolicyName": "Auto Insurance"
+    },
+    {
+      "Id": "kb-v012",
+      "Title": "Commercial Vehicle Insurance",
+      "Content": "Commercial Vehicle Insurance is designed for vehicles used for business purposes, such as trucks, vans, taxis, delivery vehicles, and company cars. Standard personal auto policies typically exclude commercial use. Commercial policies offer higher liability limits to account for the greater risks involved in business driving, and can be customized to cover cargo, employees driving the vehicle, and specialized equipment.",
+      "Category": "Vehicle Insurance",
+      "PolicyType": "Vehicle",
+      "PolicyName": "Commercial Auto"
+    },
+    {
+      "Id": "kb-v013",
+      "Title": "Two-Wheeler / Motorcycle Insurance",
+      "Content": "Two-Wheeler Insurance specifically covers motorcycles, scooters, and mopeds. Like car insurance, it comes in third-party liability and comprehensive variants. Coverage typically includes accident damage, theft, fire, and natural calamities. Add-ons such as zero depreciation, roadside assistance, and personal accident cover for the rider are available. Most regions legally mandate at least third-party two-wheeler insurance.",
+      "Category": "Vehicle Insurance",
+      "PolicyType": "Vehicle",
+      "PolicyName": "Motorcycle Insurance"
+    },
+    {
+      "Id": "kb-v014",
+      "Title": "Electric Vehicle (EV) Insurance",
+      "Content": "Electric Vehicle Insurance is a specialized policy tailored for battery-powered vehicles. It covers all standard risks (accidents, theft, fire) plus EV-specific risks such as battery damage, charging equipment damage, and electrocution during charging. Because EV components like the battery pack are expensive to replace, premiums can be higher than for traditional vehicles. Some insurers offer discounts for eco-friendly vehicles.",
+      "Category": "Vehicle Insurance",
+      "PolicyType": "Vehicle",
+      "PolicyName": "EV Insurance"
+    },
+    {
+      "Id": "kb-v015",
+      "Title": "Factors That Affect Your Vehicle Insurance Premium",
+      "Content": "Your vehicle insurance premium is determined by several factors: 1) Driver's age and experience — younger or inexperienced drivers pay more. 2) Driving history — accidents and traffic violations increase premiums. 3) Vehicle make, model, and age — luxury or sports cars cost more to insure. 4) Location — urban areas with higher accident and theft rates have higher premiums. 5) Annual mileage — more driving means more risk. 6) Coverage type and deductible amount. 7) Credit score (in some regions). 8) Vehicle safety features — ABS, airbags, and anti-theft devices can lower premiums.",
+      "Category": "Vehicle Insurance",
+      "PolicyType": "Vehicle",
+      "PolicyName": "Auto Insurance"
+    },
+    {
+      "Id": "kb-v016",
+      "Title": "How to Reduce Your Vehicle Insurance Premium",
+      "Content": "You can lower your vehicle insurance costs by: 1) Choosing a higher deductible. 2) Bundling vehicle insurance with home or other policies for a multi-policy discount. 3) Maintaining a clean driving record with no claims (No-Claim Bonus / NCB). 4) Installing approved anti-theft devices. 5) Completing a defensive driving course. 6) Limiting annual mileage. 7) Comparing quotes from multiple insurers. 8) Asking about loyalty, student, or senior citizen discounts.",
+      "Category": "Vehicle Insurance",
+      "PolicyType": "Vehicle",
+      "PolicyName": "Auto Insurance"
+    },
+    {
+      "Id": "kb-v017",
+      "Title": "No-Claim Bonus (NCB) in Vehicle Insurance",
+      "Content": "A No-Claim Bonus (NCB) is a reward offered by insurers to policyholders who do not make any claims during a policy year. NCB is typically given as a discount on the renewal premium — it can range from 20% after one claim-free year up to 50% after five consecutive claim-free years. NCB belongs to the policyholder, not the vehicle, and can usually be transferred when you change insurers or buy a new car.",
+      "Category": "Vehicle Insurance",
+      "PolicyType": "Vehicle",
+      "PolicyName": "Auto Insurance"
+    },
+    {
+      "Id": "kb-v018",
+      "Title": "What is an IDV (Insured Declared Value)?",
+      "Content": "Insured Declared Value (IDV) is the maximum sum your insurer will pay if your vehicle is stolen or declared a total loss. IDV is calculated based on the manufacturer's listed selling price minus depreciation for the vehicle's age. A higher IDV means higher premium but better payout in case of a total loss. A lower IDV reduces your premium but may leave you undercompensated. It is important to set an accurate IDV when purchasing or renewing a policy.",
+      "Category": "Vehicle Insurance",
+      "PolicyType": "Vehicle",
+      "PolicyName": "Auto Insurance"
+    },
+    {
+      "Id": "kb-v019",
+      "Title": "Vehicle Insurance Claim — Step-by-Step Guide",
+      "Content": "Steps to file a vehicle insurance claim: 1) Inform your insurer immediately after the incident via phone, app, or website. 2) File a First Information Report (FIR) with the police if there is theft, third-party injury, or significant damage. 3) Take photographs of the damage and scene. 4) Do not move or repair the vehicle before the surveyor's inspection. 5) Submit required documents: policy copy, driving licence, registration certificate, FIR (if applicable), and repair estimate. 6) A claims surveyor will inspect the vehicle. 7) Approved claims are settled directly with the garage (cashless) or reimbursed to you.",
+      "Category": "Vehicle Insurance",
+      "PolicyType": "Vehicle",
+      "PolicyName": "Auto Insurance"
+    },
+    {
+      "Id": "kb-v020",
+      "Title": "Cashless vs. Reimbursement Claim Settlement",
+      "Content": "Vehicle insurance claims can be settled in two ways. In a Cashless Settlement, your insurer has a network of partner garages where repairs are paid directly by the insurer — you only pay the deductible and any non-covered costs. In a Reimbursement Settlement, you pay for repairs out-of-pocket at any garage you choose, then submit bills to the insurer for reimbursement. Cashless claims are faster and more convenient, while reimbursement gives you freedom to choose your repair shop.",
+      "Category": "Vehicle Insurance",
+      "PolicyType": "Vehicle",
+      "PolicyName": "Auto Insurance"
+    },
+    {
+      "Id": "kb-v021",
+      "Title": "Common Vehicle Insurance Exclusions",
+      "Content": "Vehicle insurance policies typically do NOT cover: 1) Driving under the influence of alcohol or drugs. 2) Driving without a valid licence. 3) Intentional or deliberate damage to the vehicle. 4) Mechanical or electrical breakdowns due to normal wear and tear. 5) Damage caused when driving outside the permitted geographic area. 6) Consequential losses (e.g., loss of income due to vehicle downtime). 7) Damage to tyres unless the vehicle itself is also damaged in the same incident. 8) War, nuclear risks, or civil unrest. Always review your policy wording to understand all exclusions.",
+      "Category": "Vehicle Insurance",
+      "PolicyType": "Vehicle",
+      "PolicyName": "Auto Insurance"
+    },
+    {
+      "Id": "kb-v022",
+      "Title": "Personal Accident Cover for Vehicle Owner-Driver",
+      "Content": "Personal Accident (PA) cover for the owner-driver provides a lump-sum compensation in the event of accidental death or permanent disability caused while driving or travelling in the insured vehicle. This cover is mandatory in many countries alongside the vehicle policy. The sum insured is typically fixed (e.g., $10,000–$15,000) and payable to the nominee in case of death, or to the policyholder in case of disability. It can also be extended to cover passengers for an additional premium.",
+      "Category": "Vehicle Insurance",
+      "PolicyType": "Vehicle",
+      "PolicyName": "Auto Insurance"
+    },
+
+    {
+      "Id": "kb-m001",
+      "Title": "Overview of Health/Medical Insurance",
+      "Content": "Health insurance (also called medical insurance) covers medical expenses incurred by the policyholder. It pays for hospitalization, doctor visits, prescription drugs, surgeries, and sometimes preventive care. Health insurance can be provided by employers, purchased individually, or obtained through government programs. Having health insurance protects you from high medical costs and ensures access to quality healthcare.",
+      "Category": "Medical Insurance",
+      "PolicyType": "Medical",
+      "PolicyName": "Health Insurance"
+    },
+    {
+      "Id": "kb-m002",
+      "Title": "Individual Health Insurance Plan",
+      "Content": "An individual health insurance plan covers a single person for medical expenses. The policyholder pays a premium, and the insurer covers eligible medical costs up to the sum insured. Individual plans are suitable for self-employed individuals, freelancers, or those whose employers don't provide group coverage. You can customize coverage based on your health needs, budget, and preferred hospitals.",
+      "Category": "Medical Insurance",
+      "PolicyType": "Medical",
+      "PolicyName": "Health Insurance"
+    },
+    {
+      "Id": "kb-m003",
+      "Title": "Family Floater Health Insurance",
+      "Content": "A family floater health insurance plan covers the entire family (spouse, children, and sometimes dependent parents) under a single policy with one sum insured. The sum insured is shared among all family members. This is more cost-effective than buying separate individual policies. It's ideal for young families with no major health issues. The sum insured can be used by any family member for hospitalization during the policy year.",
+      "Category": "Medical Insurance",
+      "PolicyType": "Medical",
+      "PolicyName": "Health Insurance"
+    },
+    {
+      "Id": "kb-m004",
+      "Title": "Group Health Insurance",
+      "Content": "Group health insurance is provided by employers to their employees as part of the benefits package. The employer typically pays part or all of the premium. Group policies offer lower premiums due to the large risk pool. Coverage usually includes hospitalization, outpatient care, and sometimes dental and vision. Employees may lose coverage when they leave the company, so having an individual backup policy is recommended.",
+      "Category": "Medical Insurance",
+      "PolicyType": "Medical",
+      "PolicyName": "Group Health"
+    },
+    {
+      "Id": "kb-m005",
+      "Title": "Critical Illness Insurance",
+      "Content": "Critical illness insurance provides a lump-sum payment upon diagnosis of specific serious illnesses covered under the policy, such as cancer, heart attack, stroke, kidney failure, or organ transplant. The payout can be used for medical treatment, lost income, or any other expenses. This is usually an add-on or separate policy from standard health insurance. It provides financial security during a health crisis.",
+      "Category": "Medical Insurance",
+      "PolicyType": "Medical",
+      "PolicyName": "Critical Illness"
+    },
+    {
+      "Id": "kb-m006",
+      "Title": "Hospital Cash Insurance",
+      "Content": "Hospital cash insurance pays a fixed daily amount for each day the policyholder is hospitalized. The benefit is paid regardless of actual medical expenses and can be used for any purpose, such as covering lost income, hiring help, or paying bills. This is typically a supplementary policy that provides additional financial support during hospitalization. The daily benefit amount and maximum number of days are specified in the policy.",
+      "Category": "Medical Insurance",
+      "PolicyType": "Medical",
+      "PolicyName": "Health Insurance"
+    },
+    {
+      "Id": "kb-m007",
+      "Title": "Senior Citizen Health Insurance",
+      "Content": "Senior citizen health insurance is designed for individuals above 60 years of age who may find it difficult to get standard health coverage. These plans cover age-related illnesses, pre-existing conditions (after a waiting period), and hospitalization costs. Premiums are higher due to increased health risks. Some policies offer lifetime renewability, domiciliary hospitalization coverage, and no medical check-up for entry. It's essential for protecting retirement savings from medical expenses.",
+      "Category": "Medical Insurance",
+      "PolicyType": "Medical",
+      "PolicyName": "Senior Health"
+    },
+    {
+      "Id": "kb-m008",
+      "Title": "Maternity Health Insurance",
+      "Content": "Maternity health insurance covers expenses related to pregnancy, childbirth, and newborn care. Coverage typically includes prenatal checkups, delivery (normal or C-section), hospitalization, and sometimes vaccination costs for the baby. Most policies have a waiting period (usually 2-4 years) before maternity benefits can be claimed. There is usually a sub-limit for maternity expenses. This coverage is ideal for couples planning to start a family.",
+      "Category": "Medical Insurance",
+      "PolicyType": "Medical",
+      "PolicyName": "Health Insurance"
+    },
+    {
+      "Id": "kb-m009",
+      "Title": "Pre-Existing Disease Coverage",
+      "Content": "Pre-existing disease coverage protects medical conditions that the policyholder had before purchasing the insurance, such as diabetes, hypertension, asthma, or heart disease. Most health insurance policies cover pre-existing conditions after a waiting period (typically 2-4 years). During this period, claims related to these conditions are not covered. Disclosing all pre-existing conditions at the time of purchase is crucial to avoid claim rejection later.",
+      "Category": "Medical Insurance",
+      "PolicyType": "Medical",
+      "PolicyName": "Health Insurance"
+    },
+    {
+      "Id": "kb-m010",
+      "Title": "Waiting Period in Health Insurance",
+      "Content": "A waiting period is the time during which certain conditions or treatments are not covered by the insurance policy. Common waiting periods include: 1) Initial waiting period (30 days) — no coverage except accidents. 2) Pre-existing disease waiting period (2-4 years). 3) Specific disease waiting period (1-2 years) for conditions like hernia, cataract, or joint replacement. 4) Maternity waiting period (2-4 years). Understanding waiting periods is essential to avoid claim surprises.",
+      "Category": "Medical Insurance",
+      "PolicyType": "Medical",
+      "PolicyName": "Health Insurance"
+    },
+    {
+      "Id": "kb-m011",
+      "Title": "Cashless vs. Reimbursement Health Claims",
+      "Content": "Health insurance claims can be settled in two ways. In a Cashless Settlement, you get treated at a network hospital, and the insurer pays the hospital directly. You only pay non-covered expenses and deductibles. In a Reimbursement Settlement, you pay the hospital bills yourself and later submit documents to the insurer for repayment. Cashless claims are more convenient, while reimbursement allows you to choose any hospital, including non-network ones.",
+      "Category": "Medical Insurance",
+      "PolicyType": "Medical",
+      "PolicyName": "Health Insurance"
+    },
+    {
+      "Id": "kb-m012",
+      "Title": "No-Claim Bonus (NCB) in Health Insurance",
+      "Content": "A No-Claim Bonus (NCB) is a reward for not making any claims during a policy year. In health insurance, NCB usually comes as a cumulative bonus — an increase in the sum insured (typically 5-10% per claim-free year) without increasing the premium. Some insurers offer a discount on renewal premium instead. NCB can accumulate up to a maximum limit (e.g., 50-100% of base sum insured). Making a claim may reduce or reset the NCB.",
+      "Category": "Medical Insurance",
+      "PolicyType": "Medical",
+      "PolicyName": "Health Insurance"
+    },
+    {
+      "Id": "kb-m013",
+      "Title": "Co-Payment in Health Insurance",
+      "Content": "Co-payment (or co-pay) is a clause where the policyholder pays a fixed percentage of the claim amount, and the insurer pays the rest. For example, with a 20% co-pay on a $10,000 claim, you pay $2,000 and the insurer pays $8,000. Co-pay is common in senior citizen policies or policies with lower premiums. While it reduces the premium, it increases your out-of-pocket expense during claims. Always check the co-pay percentage before buying a policy.",
+      "Category": "Medical Insurance",
+      "PolicyType": "Medical",
+      "PolicyName": "Health Insurance"
+    },
+    {
+      "Id": "kb-m014",
+      "Title": "Room Rent Limits in Health Insurance",
+      "Content": "Most health insurance policies have a sub-limit on room rent, expressed as a fixed amount per day or a percentage of the sum insured. If you choose a room above the limit, the insurer pays proportionately lower for all other expenses (doctor fees, nursing, etc.). For example, if the limit is $100/day and you choose a $200/day room, your entire claim may be reduced by 50%. Choosing a policy with no room rent limit or a higher limit provides better coverage.",
+      "Category": "Medical Insurance",
+      "PolicyType": "Medical",
+      "PolicyName": "Health Insurance"
+    },
+    {
+      "Id": "kb-m015",
+      "Title": "How to File a Health Insurance Claim",
+      "Content": "Steps to file a health insurance claim: 1) For planned hospitalization, inform the insurer 24-48 hours before admission. For emergencies, inform within 24 hours of admission. 2) Submit required documents: policy number, ID proof, medical records, bills, and discharge summary. 3) For cashless claims, the hospital sends the pre-authorization form to the insurer. 4) The insurer reviews and approves the claim. 5) For reimbursement, submit original bills and documents within the specified timeframe (usually 15-30 days after discharge).",
+      "Category": "Medical Insurance",
+      "PolicyType": "Medical",
+      "PolicyName": "Health Insurance"
+    }
+  ]
+}

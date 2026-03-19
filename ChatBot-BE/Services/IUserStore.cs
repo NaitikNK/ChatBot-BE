@@ -1,10 +1,11 @@
-using ChatBot_BE.Data;
+using ChatBot_BE.Model;
 
 namespace ChatBot_BE.Services
 {
     public interface IUserStore
     {
         Task<List<User>> GetAllAsync();
+        Task<(List<User> Users, int TotalCount)> GetPagedAsync(int pageNumber, int pageSize);
         Task<User?> GetAsync(int id);
         Task<User?> GetByPolicyNumberAsync(string policyNumber);
         Task<User?> GetByEmailAsync(string email);

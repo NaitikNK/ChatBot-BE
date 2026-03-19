@@ -1,5 +1,8 @@
 using ChatBot_BE.Services;
+using ChatBot_BE.Data;
 using Microsoft.SemanticKernel;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Serilog;
 using Serilog.Events;
 using System.Threading.RateLimiting;
@@ -104,6 +107,9 @@ builder.Services.AddMemoryCache();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseInMemoryDatabase("ChatBotDb"));
+
 // Configure rate limiting
 builder.Services.AddRateLimiter(rateLimiterOptions =>
 {
@@ -161,23 +167,37 @@ builder.Services.AddSingleton<IProfanityFilter, ProfanityFilter>();
 builder.Services.AddSingleton<ISpellChecker, SpellChecker>();
 builder.Services.AddScoped<IInputValidator, InputValidator>();
 
-// Semantic Kernel setup with Gemini
-var geminiApiKey = builder.Configuration["Gemini:ApiKey"]
-    ?? throw new InvalidOperationException("Missing Gemini:ApiKey in configuration.");
-var geminiModel = builder.Configuration["Gemini:Model"]
-    ?? throw new InvalidOperationException("Missing Gemini:Model in configuration.");
+builder.Services.AddScoped<IPolicyService, PolicyService>();
+
+// Knowledge Base (RAG) setup
+builder.Services.AddSingleton<IKnowledgeBaseService, InMemoryKnowledgeBaseService>();
+builder.Services.AddScoped<KnowledgeBasePlugin>();
+
+// Semantic Kernel setup with OpenAI (Kimi K2 via NVIDIA)
+var openAiApiKey = builder.Configuration["OpenAI:ApiKey"]
+    ?? throw new InvalidOperationException("Missing OpenAI:ApiKey in configuration.");
+var openAiModelId = builder.Configuration["OpenAI:ModelId"]
+    ?? throw new InvalidOperationException("Missing OpenAI:ModelId in configuration.");
+var openAiEndpoint = builder.Configuration["OpenAI:Endpoint"]
+    ?? throw new InvalidOperationException("Missing OpenAI:Endpoint in configuration.");
 
 builder.Services.AddScoped<UserManagementPlugin>();
+builder.Services.AddScoped<KnowledgeBasePlugin>();
 builder.Services.AddScoped(sp =>
 {
     var kernelBuilder = Kernel.CreateBuilder();
 
-    kernelBuilder.AddGoogleAIGeminiChatCompletion(
-        modelId: geminiModel,
-        apiKey: geminiApiKey);
+    var httpClient = new HttpClient { BaseAddress = new Uri(openAiEndpoint) };
+    kernelBuilder.AddOpenAIChatCompletion(
+        modelId: openAiModelId,
+        apiKey: openAiApiKey,
+        httpClient: httpClient);
 
-    var plugin = sp.GetRequiredService<UserManagementPlugin>();
-    kernelBuilder.Plugins.AddFromObject(plugin, "UserManagement");
+    var userPlugin = sp.GetRequiredService<UserManagementPlugin>();
+    kernelBuilder.Plugins.AddFromObject(userPlugin, "UserManagement");
+
+    var knowledgePlugin = sp.GetRequiredService<KnowledgeBasePlugin>();
+    kernelBuilder.Plugins.AddFromObject(knowledgePlugin, "KnowledgeBase");
 
     return kernelBuilder.Build();
 });
@@ -198,6 +218,47 @@ app.UseRateLimiter();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Initialize and seed the knowledge base
+try
+{
+    using var scope = app.Services.CreateScope();
+    var knowledgeBase = scope.ServiceProvider.GetRequiredService<IKnowledgeBaseService>();
+    await KnowledgeBaseSeeder.SeedAsync(knowledgeBase, app.Environment);
+    Log.Information("Knowledge base seeded successfully");
+}
+catch (Exception ex)
+{
+    Log.Error(ex, "Failed to seed knowledge base");
+}
+
+// Seed fake user data for testing
+try
+{
+    using var scope = app.Services.CreateScope();
+    var userStore = scope.ServiceProvider.GetRequiredService<IUserStore>();
+    await UserSeeder.SeedAsync(userStore);
+    Log.Information("User data seeded successfully");
+}
+catch (Exception ex)
+{
+    Log.Error(ex, "Failed to seed user data");
+}
+
+// Seed policy data
+try
+{
+    using var scope = app.Services.CreateScope();
+    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await context.Database.EnsureCreatedAsync();
+    await PolicySeeder.SeedAsync(context);
+    var typesCount = await context.PolicyTypes.CountAsync();
+    Log.Information("Policy data seeded successfully: {count} types found.", typesCount);
+}
+catch (Exception ex)
+{
+    Log.Error(ex, "Failed to seed policy data");
+}
 
 app.Run();
 

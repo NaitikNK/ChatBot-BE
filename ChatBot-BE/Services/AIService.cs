@@ -1,7 +1,7 @@
-using ChatBot_BE.Models;
+using ChatBot_BE.Dto;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
-using Microsoft.SemanticKernel.Connectors.Google;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
 
 namespace ChatBot_BE.Services
 {
@@ -60,10 +60,13 @@ namespace ChatBot_BE.Services
             // Add user message
             session.History.AddUserMessage(message);
 
-            // Configure Gemini to automatically invoke plugin functions
-            var executionSettings = new GeminiPromptExecutionSettings
+            // Configure execution settings for Kimi (OpenAI API)
+            var executionSettings = new OpenAIPromptExecutionSettings
             {
-                FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
+                FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(),
+                Temperature = 1,        // Set according to user preference
+                TopP = 0.9,             // Set according to user preference
+                MaxTokens = 2000        // Maximum response length
             };
 
             try

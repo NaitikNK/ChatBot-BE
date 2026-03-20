@@ -29,7 +29,7 @@ namespace ChatBot_BE.Services
             [Description("User's policy number")] string policyNumber,
             [Description("User's email address")] string email,
             [Description("Policy type: Personal, Vehicle, or Medical")] string policyType = "Personal",
-            [Description("Policy name enum value (e.g., PersonalShieldPlan, AutoInsurance, HealthInsurance, CarProtectionPlan, BikeInsurancePlan, GroupHealth, etc.)")] string? policyName = null,
+            [Description("Policy name (e.g., Personal Shield Plan, Auto Insurance, Health Insurance, Car Protection Plan, Bike Insurance Plan, Group Health, etc.)")] string? policyName = null,
             [Description("User's phone number")] string? phoneNumber = null)
         {
             _logger.LogDebug("CreateUser called. PolicyNumber: {PolicyNumber}, Email: {Email}, PolicyType: {PolicyType}, ConversationId: {ConversationId}",
@@ -116,7 +116,9 @@ namespace ChatBot_BE.Services
                 return $"❌ No record found for policy number '{policyNumber}'.";
             }
 
-            if (!string.Equals(user.OwnerSessionId, _context.ConversationId, StringComparison.OrdinalIgnoreCase))
+            // Allow access if it's the current session OR if it's a system record (empty/null ID)
+            if (!string.IsNullOrEmpty(user.OwnerSessionId) && 
+                !string.Equals(user.OwnerSessionId, _context.ConversationId, StringComparison.OrdinalIgnoreCase))
             {
                 _logger.LogWarning("ViewUser access denied. PolicyNumber: {PolicyNumber}, UserSessionId: {UserSessionId}, CurrentSessionId: {ConversationId}",
                     policyNumber, user.OwnerSessionId, _context.ConversationId);
@@ -153,9 +155,10 @@ namespace ChatBot_BE.Services
                 return "📭 No policy records found in the system.";
             }
 
-            // Filter to show only records from current session (for security)
+            // Filter to show records from current session OR system-seeded records (empty/null ID)
             var sessionUsers = users
-                .Where(u => string.Equals(u.OwnerSessionId, _context.ConversationId, StringComparison.OrdinalIgnoreCase))
+                .Where(u => string.IsNullOrEmpty(u.OwnerSessionId) || 
+                            string.Equals(u.OwnerSessionId, _context.ConversationId, StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
             if (sessionUsers.Count == 0)

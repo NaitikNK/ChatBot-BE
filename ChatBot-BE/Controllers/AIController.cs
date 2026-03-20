@@ -21,6 +21,11 @@ namespace ChatBot_BE.Controllers
             _inputValidator = inputValidator;
         }
 
+        /// <summary>
+        /// Sends a message to the AI chatbot and gets a response.
+        /// </summary>
+        /// <param name="request">The chat request containing the user message and optional conversation ID.</param>
+        /// <returns>A chat reply with the AI's response and conversation ID.</returns>
         [HttpPost("chat")]
         public async Task<IActionResult> Chat([FromBody] ChatRequest request)
         {

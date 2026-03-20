@@ -68,9 +68,9 @@ public class ProfanityFilterTests
     }
 
     [Theory]
-    [InlineData("This is f@cked up", false)] // Leet speak not always detected - limitation
-    [InlineData("Sh1t happens", false)] // Leet speak not always detected - limitation
-    [InlineData("B1tch please", false)] // Leet speak not always detected - limitation
+    [InlineData("This is f@cked up", true)]
+    [InlineData("Sh1t happens", true)]
+    [InlineData("B1tch please", true)]
     public void ContainsProfanity_ShouldDetectLeetSpeak(string text, bool expected)
     {
         // Act - Note: Leet speak detection is limited in current implementation

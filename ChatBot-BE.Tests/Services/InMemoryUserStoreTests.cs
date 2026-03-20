@@ -1,5 +1,7 @@
 using ChatBot_BE.Data;
 using ChatBot_BE.Services;
+using ChatBot_BE.Model;
+using ChatBot_BE.Dto;
 using FluentAssertions;
 
 namespace ChatBot_BE.Tests.Services;

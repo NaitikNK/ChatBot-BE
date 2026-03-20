@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
-using ChatBot_BE.Models;
+using ChatBot_BE.Dto;
+using ChatBot_BE.Model;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
 

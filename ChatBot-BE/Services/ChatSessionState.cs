@@ -29,7 +29,7 @@ namespace ChatBot_BE.Services
         /// </summary>
         public void TrimHistory()
         {
-            const int MaxMessages = 30; // Keep last 30 messages (excluding system message)
+            const int MaxMessages = 20; // Keep last 20 messages (excluding system message)
             const int SummaryThreshold = 20; // Create summary after this many messages
 
             // Separate system and non-system messages

@@ -15,6 +15,9 @@ namespace ChatBot_BE.Controllers
             _policyService = policyService;
         }
 
+        /// <summary>
+        /// Gets all available policy types (e.g., Personal, Vehicle, Medical).
+        /// </summary>
         [HttpGet("types")]
         public async Task<ActionResult<ApiResponse<List<DropdownOptionDto>>>> GetPolicyTypes()
         {
@@ -27,6 +30,11 @@ namespace ChatBot_BE.Controllers
             });
         }
 
+        /// <summary>
+        /// Gets all policy names associated with a specific policy type.
+        /// </summary>
+        /// <param name="typeId">The ID or name of the policy type.</param>
+        /// <param name="type">Alias for typeId.</param>
         [HttpGet("names")]
         public async Task<ActionResult<ApiResponse<List<DropdownOptionDto>>>> GetPolicyNames([FromQuery] string? typeId, [FromQuery] string? type)
         {

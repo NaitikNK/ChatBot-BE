@@ -1,8 +1,11 @@
+using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
+using System.Collections.Generic;
+using System.Linq;
 using ChatBot_BE.Services;
 using ChatBot_BE.Dto;
 using ChatBot_BE.Model;
 using ChatBot_BE.Data;
-using Microsoft.AspNetCore.Mvc;
 
 namespace ChatBot_BE.Controllers
 {
@@ -12,24 +15,38 @@ namespace ChatBot_BE.Controllers
     {
         private readonly IUserStore _users;
         private readonly AppDbContext _db;
+        private readonly IPolicyService _policyService;
 
-        public UsersController(IUserStore users, AppDbContext db)
+        public UsersController(IUserStore users, AppDbContext db, IPolicyService policyService)
         {
             _users = users;
             _db = db;
+            _policyService = policyService;
         }
 
+        /// <summary>
+        /// Gets all users currently in the system.
+        /// </summary>
         [HttpGet]
         public async Task<ActionResult<ApiResponse<List<UserResponse>>>> GetAll()
         {
             var users = await _users.GetAllAsync();
+            var responses = new List<UserResponse>();
+            foreach (var user in users)
+            {
+                responses.Add(await ToResponseAsync(user));
+            }
+
             return Ok(new ApiResponse<List<UserResponse>>
             {
                 Success = true,
-                Data = users.Select(u => ToResponse(u)).ToList()
+                Data = responses
             });
         }
 
+        /// <summary>
+        /// Gets a paged list of users.
+        /// </summary>
         [HttpGet("list")]
         public async Task<ActionResult<ApiResponse<PagedResponse<UserResponse>>>> GetList(
             [FromQuery] int pageNumber = 1,
@@ -42,9 +59,15 @@ namespace ChatBot_BE.Controllers
             var (users, totalCount) = await _users.GetPagedAsync(pageNumber, pageSize);
             var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
 
+            var items = new List<UserResponse>();
+            foreach (var user in users)
+            {
+                items.Add(await ToResponseAsync(user));
+            }
+
             var pagedResponse = new PagedResponse<UserResponse>
             {
-                Items = users.Select(u => ToResponse(u)).ToList(),
+                Items = items,
                 PageNumber = pageNumber,
                 PageSize = pageSize,
                 TotalCount = totalCount,
@@ -58,6 +81,9 @@ namespace ChatBot_BE.Controllers
             });
         }
 
+        /// <summary>
+        /// Gets a specific user by their ID.
+        /// </summary>
         [HttpGet("{id}")]
         public async Task<ActionResult<ApiResponse<UserResponse>>> Get(int id)
         {
@@ -66,10 +92,13 @@ namespace ChatBot_BE.Controllers
             return Ok(new ApiResponse<UserResponse>
             {
                 Success = true,
-                Data = ToResponse(user)
+                Data = await ToResponseAsync(user)
             });
         }
 
+        /// <summary>
+        /// Gets a user by their policy number.
+        /// </summary>
         [HttpGet("by-policy/{policyNumber}")]
         public async Task<ActionResult<ApiResponse<UserResponse>>> GetByPolicyNumber(string policyNumber)
         {
@@ -78,10 +107,13 @@ namespace ChatBot_BE.Controllers
             return Ok(new ApiResponse<UserResponse>
             {
                 Success = true,
-                Data = ToResponse(user)
+                Data = await ToResponseAsync(user)
             });
         }
 
+        /// <summary>
+        /// Creates a new user policy record.
+        /// </summary>
         [HttpPost]
         public async Task<ActionResult<ApiResponse<UserResponse>>> Create([FromBody] UserCreateRequest request)
         {
@@ -108,7 +140,7 @@ namespace ChatBot_BE.Controllers
                 return CreatedAtAction(
                     nameof(GetByPolicyNumber),
                     new { policyNumber = created.PolicyNumber },
-                    new ApiResponse<UserResponse> { Success = true, Data = ToResponse(created) });
+                    new ApiResponse<UserResponse> { Success = true, Data = await ToResponseAsync(created) });
             }
             catch (ArgumentException ex)
             {
@@ -120,6 +152,9 @@ namespace ChatBot_BE.Controllers
             }
         }
 
+        /// <summary>
+        /// Updates an existing user policy record.
+        /// </summary>
         [HttpPut("{id}")]
         public async Task<ActionResult<ApiResponse<object>>> Update(int id, [FromBody] UserUpdateRequest request)
         {
@@ -154,6 +189,9 @@ namespace ChatBot_BE.Controllers
             }
         }
 
+        /// <summary>
+        /// Deletes a user by their ID.
+        /// </summary>
         [HttpDelete("{id}")]
         public async Task<ActionResult<ApiResponse<object>>> Delete(int id)
         {
@@ -163,6 +201,9 @@ namespace ChatBot_BE.Controllers
                 : NotFound(new ApiResponse<object> { Success = false, Error = "Not found." });
         }
 
+        /// <summary>
+        /// Deletes a user by their policy number.
+        /// </summary>
         [HttpDelete("by-policy/{policyNumber}")]
         public async Task<ActionResult<ApiResponse<object>>> DeleteByPolicyNumber(string policyNumber)
         {
@@ -172,53 +213,10 @@ namespace ChatBot_BE.Controllers
                 : NotFound(new ApiResponse<object> { Success = false, Error = "Not found." });
         }
 
-        private UserResponse ToResponse(User user)
+        private async Task<UserResponse> ToResponseAsync(User user)
         {
-            // Look up PolicyType
-            int? policyTypeId = null;
-            string policyTypeName = user.PolicyType;
-
-            if (int.TryParse(user.PolicyType, out int typeId))
-            {
-                var typeMaster = _db.PolicyTypes.Find(typeId);
-                if (typeMaster != null)
-                {
-                    policyTypeId = typeMaster.Id;
-                    policyTypeName = typeMaster.Name;
-                }
-            }
-            else if (!string.IsNullOrEmpty(user.PolicyType))
-            {
-                var typeMaster = _db.PolicyTypes.FirstOrDefault(t => t.Name == user.PolicyType);
-                if (typeMaster != null)
-                {
-                    policyTypeId = typeMaster.Id;
-                    policyTypeName = typeMaster.Name;
-                }
-            }
-
-            // Look up PolicyName
-            int? policyNameId = null;
-            string? policyNameName = user.PolicyName;
-
-            if (int.TryParse(user.PolicyName, out int nameId))
-            {
-                var nameMaster = _db.PolicyNames.Find(nameId);
-                if (nameMaster != null)
-                {
-                    policyNameId = nameMaster.Id;
-                    policyNameName = nameMaster.Name;
-                }
-            }
-            else if (!string.IsNullOrEmpty(user.PolicyName))
-            {
-                var nameMaster = _db.PolicyNames.FirstOrDefault(n => n.Name == user.PolicyName);
-                if (nameMaster != null)
-                {
-                    policyNameId = nameMaster.Id;
-                    policyNameName = nameMaster.Name;
-                }
-            }
+            var (policyTypeId, policyTypeName) = await _policyService.ResolvePolicyTypeAsync(user.PolicyType);
+            var (policyNameId, policyNameName) = await _policyService.ResolvePolicyNameAsync(user.PolicyName);
 
             return new UserResponse
             {

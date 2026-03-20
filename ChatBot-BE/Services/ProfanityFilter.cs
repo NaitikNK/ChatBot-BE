@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+
 namespace ChatBot_BE.Services
 {
     /// <summary>
@@ -16,10 +18,10 @@ namespace ChatBot_BE.Services
         private static readonly HashSet<string> ProfanityWords = new(StringComparer.OrdinalIgnoreCase)
         {
             // Severe profanity
-            "fuck", "fucker", "fucking", "fucked", "fuk", "fck",
-            "shit", "shitty", "shite",
+            "fuck", "fucker", "fucking", "fucked", "fuk", "fck", "f***ing", "f***", "f*ck",
+            "shit", "shitty", "shite", "sh*t",
             "asshole", "ass", "arse", "arsehole",
-            "bitch", "bitches", "bitchy",
+            "bitch", "bitches", "bitchy", "b*tch",
             "bastard", "bastards",
             "damn", "dammit", "damnit",
             "crap", "crappy",
@@ -66,10 +68,12 @@ namespace ChatBot_BE.Services
 
             var normalized = NormalizeText(text);
             
-            // Check for exact matches
-            foreach (var word in ProfanityWords)
+            // Simple but effective: split into words and check each
+            var words = normalized.Split(new[] { ' ', '\t', '\n', '\r', '.', ',', '!', '?', ';', ':', '-', '_', '(', ')', '[', ']', '{', '}' }, StringSplitOptions.RemoveEmptyEntries);
+            
+            foreach (var word in words)
             {
-                if (normalized.Contains(word))
+                if (ProfanityWords.Contains(word))
                 {
                     // Skip context-dependent words in legitimate contexts
                     if (ContextDependentWords.Contains(word) && IsLegitimateContext(text, word))
@@ -154,7 +158,7 @@ namespace ChatBot_BE.Services
                 .Replace("4", "a")
                 .Replace("5", "s")
                 .Replace("7", "t")
-                .Replace("@", "a")
+                .Replace("@", "u")
                 .Replace("$", "s")
                 .Replace("!", "i")
                 .Replace(".", "")
@@ -210,7 +214,10 @@ namespace ChatBot_BE.Services
                        lowerText.Contains("pass") || 
                        lowerText.Contains("grass") ||
                        lowerText.Contains("mass") ||
-                       lowerText.Contains("gas");
+                       lowerText.Contains("gas") ||
+                       lowerText.Contains("assistance") ||
+                       lowerText.Contains("assessment") ||
+                       lowerText.Contains("asset");
             }
 
             // "crap" in "crappy" but not as excretion

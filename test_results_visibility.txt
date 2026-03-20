@@ -1,0 +1,36 @@
+﻿  Determining projects to restore...
+  All projects are up-to-date for restore.
+  ChatBot-BE -> d:\LocalProjects\ChatBot-BE\ChatBot-BE\bin\Debug\net8.0\ChatBot-BE.dll
+  ChatBot-BE.Tests -> d:\LocalProjects\ChatBot-BE\ChatBot-BE.Tests\bin\Debug\net8.0\ChatBot-BE.Tests.dll
+Test run for d:\LocalProjects\ChatBot-BE\ChatBot-BE.Tests\bin\Debug\net8.0\ChatBot-BE.Tests.dll (.NETCoreApp,Version=v8.0)
+A total of 1 test files matched the specified pattern.
+  Failed ChatBot_BE.Tests.Services.ProfanityFilterTests.ContainsProfanity_ShouldDetectCensoredProfanity(text: "F*** you") [73 ms]
+  Error Message:
+   Expected result to be true, but found False.
+  Stack Trace:
+     at FluentAssertions.Execution.XUnit2TestFramework.Throw(String message)
+   at FluentAssertions.Execution.TestFrameworkProvider.Throw(String message)
+   at FluentAssertions.Execution.DefaultAssertionStrategy.HandleFailure(String message)
+   at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)
+   at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)
+   at FluentAssertions.Execution.AssertionScope.FailWith(String message, Object[] args)
+   at FluentAssertions.Primitives.BooleanAssertions`1.BeTrue(String because, Object[] becauseArgs)
+   at ChatBot_BE.Tests.Services.ProfanityFilterTests.ContainsProfanity_ShouldDetectCensoredProfanity(String text) in d:\LocalProjects\ChatBot-BE\ChatBot-BE.Tests\Services\ProfanityFilterTests.cs:line 54
+   at InvokeStub_ProfanityFilterTests.ContainsProfanity_ShouldDetectCensoredProfanity(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed ChatBot_BE.Tests.Services.ProfanityFilterTests.ContainsProfanity_ShouldDetectCensoredProfanity(text: "This is f***ing amazing") [1 ms]
+  Error Message:
+   Expected result to be true, but found False.
+  Stack Trace:
+     at FluentAssertions.Execution.XUnit2TestFramework.Throw(String message)
+   at FluentAssertions.Execution.TestFrameworkProvider.Throw(String message)
+   at FluentAssertions.Execution.DefaultAssertionStrategy.HandleFailure(String message)
+   at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)
+   at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)
+   at FluentAssertions.Execution.AssertionScope.FailWith(String message, Object[] args)
+   at FluentAssertions.Primitives.BooleanAssertions`1.BeTrue(String because, Object[] becauseArgs)
+   at ChatBot_BE.Tests.Services.ProfanityFilterTests.ContainsProfanity_ShouldDetectCensoredProfanity(String text) in d:\LocalProjects\ChatBot-BE\ChatBot-BE.Tests\Services\ProfanityFilterTests.cs:line 54
+   at InvokeStub_ProfanityFilterTests.ContainsProfanity_ShouldDetectCensoredProfanity(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+
+Failed!  - Failed:     2, Passed:    96, Skipped:     0, Total:    98, Duration: 990 ms - ChatBot-BE.Tests.dll (net8.0)

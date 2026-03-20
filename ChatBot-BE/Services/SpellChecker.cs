@@ -139,7 +139,9 @@ namespace ChatBot_BE.Services
             { "definetly", "definitely" },
             { "occured", "occurred" },
             { "untill", "until" },
-            { "wierd", "weird" }
+            { "wierd", "weird" },
+            { "tehnk", "think" },
+            { "gud", "good" }
         };
 
         public bool HasSpellingErrors(string text)
@@ -159,12 +161,33 @@ namespace ChatBot_BE.Services
 
             foreach (var kvp in CommonMisspellings)
             {
-                // Use regex to replace whole words only
+                // Use regex to replace whole words only and preserve case
                 var pattern = $@"\b{Regex.Escape(kvp.Key)}\b";
-                result = Regex.Replace(result, pattern, kvp.Value, RegexOptions.IgnoreCase);
+                result = Regex.Replace(result, pattern, match => PreserveCase(match.Value, kvp.Value), RegexOptions.IgnoreCase);
             }
 
             return result;
+        }
+
+        private static string PreserveCase(string original, string replacement)
+        {
+            if (string.IsNullOrEmpty(original) || string.IsNullOrEmpty(replacement))
+                return replacement;
+
+            // All uppercase
+            if (original.All(c => !char.IsLetter(c) || char.IsUpper(c)))
+                return replacement.ToUpperInvariant();
+
+            // Title case (first letter uppercase)
+            if (char.IsUpper(original[0]))
+            {
+                if (replacement.Length > 1)
+                    return char.ToUpperInvariant(replacement[0]) + replacement.Substring(1);
+                return replacement.ToUpperInvariant();
+            }
+
+            // Default to lowercase as per dictionary
+            return replacement.ToLowerInvariant();
         }
 
         public IEnumerable<string> GetSpellingErrors(string text)

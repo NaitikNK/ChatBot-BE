@@ -6,6 +6,8 @@ using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Serilog;
 using Serilog.Events;
 using System.Threading.RateLimiting;
+using ChatBot_BE.Shared;
+using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -105,7 +107,15 @@ static string[] GetValidatedCorsOrigins(IConfiguration configuration, string con
 builder.Services.AddControllers();
 builder.Services.AddMemoryCache();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    if (File.Exists(xmlPath))
+    {
+        options.IncludeXmlComments(xmlPath);
+    }
+});
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseInMemoryDatabase("ChatBotDb"));
@@ -212,6 +222,8 @@ app.UseSwagger();
 app.UseSwaggerUI();
 
 app.UseCors("LocalFrontend");
+
+app.UseMiddleware<ExceptionMiddleware>();
 
 app.UseRateLimiter();
 

@@ -1,4 +1,6 @@
 using ChatBot_BE.Services;
+using ChatBot_BE.Model;
+using ChatBot_BE.Dto;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using NSubstitute;

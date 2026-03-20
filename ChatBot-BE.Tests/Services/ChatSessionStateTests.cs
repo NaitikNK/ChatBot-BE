@@ -1,4 +1,6 @@
 using ChatBot_BE.Services;
+using ChatBot_BE.Model;
+using ChatBot_BE.Dto;
 using FluentAssertions;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
@@ -58,8 +60,8 @@ public class ChatSessionStateTests
         session.TrimHistory();
 
         // Assert
-        // Should have: 1 system message + 20 other messages = 21 total
-        session.History.Count.Should().Be(21);
+        // Should have: 1 system message + 1 summary message + 20 other messages = 22 total
+        session.History.Count.Should().Be(22);
         session.History[0].Role.Should().Be(AuthorRole.System);
         
         // The last messages should be preserved

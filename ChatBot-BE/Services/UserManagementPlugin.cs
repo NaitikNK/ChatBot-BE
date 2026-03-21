@@ -1,6 +1,7 @@
 using ChatBot_BE.Model;
 using Microsoft.SemanticKernel;
 using System.ComponentModel;
+using System.Text.RegularExpressions;
 
 namespace ChatBot_BE.Services
 {
@@ -26,12 +27,18 @@ namespace ChatBot_BE.Services
         public async Task<string> CreateUser(
             [Description("User's first name")] string firstName,
             [Description("User's last name")] string lastName,
-            [Description("User's policy number")] string policyNumber,
             [Description("User's email address")] string email,
+            [Description("User's policy number. Leave empty to auto-generate.")] string? policyNumber = null,
             [Description("Policy type: Personal, Vehicle, or Medical")] string policyType = "Personal",
             [Description("Policy name (e.g., Personal Shield Plan, Auto Insurance, Health Insurance, Car Protection Plan, Bike Insurance Plan, Group Health, etc.)")] string? policyName = null,
             [Description("User's phone number")] string? phoneNumber = null)
         {
+            if (string.IsNullOrWhiteSpace(policyNumber))
+            {
+                policyNumber = "POL-" + Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper();
+                _logger.LogInformation("Auto-generated policy number: {PolicyNumber}", policyNumber);
+            }
+
             _logger.LogDebug("CreateUser called. PolicyNumber: {PolicyNumber}, Email: {Email}, PolicyType: {PolicyType}, ConversationId: {ConversationId}",
                 policyNumber, email, policyType, _context.ConversationId);
 
@@ -39,7 +46,13 @@ namespace ChatBot_BE.Services
                 string.IsNullOrWhiteSpace(policyNumber) || string.IsNullOrWhiteSpace(email))
             {
                 _logger.LogWarning("CreateUser failed: Missing required fields. PolicyNumber: {PolicyNumber}", policyNumber);
-                return "⚠️ Missing required fields. Please provide all details (first name, last name, policy number, and email).";
+                return "⚠️ Missing required fields. Please provide all details (first name, last name, and email).";
+            }
+
+            if (!IsValidEmail(email))
+            {
+                _logger.LogWarning("CreateUser failed: Invalid email format. Email: {Email}", email);
+                return $"⚠️ Email '{email}' is invalid. Please enter a valid email address (e.g., name@example.com).";
             }
 
             // Use policy type directly as string (default to "Personal")
@@ -116,8 +129,9 @@ namespace ChatBot_BE.Services
                 return $"❌ No record found for policy number '{policyNumber}'.";
             }
 
-            // Allow access if it's the current session OR if it's a system record (empty/null ID)
+            // Allow access if it's the current session OR if it's a system record (empty/null ID or SEEDED_RECORD)
             if (!string.IsNullOrEmpty(user.OwnerSessionId) && 
+                user.OwnerSessionId != "SEEDED_RECORD" &&
                 !string.Equals(user.OwnerSessionId, _context.ConversationId, StringComparison.OrdinalIgnoreCase))
             {
                 _logger.LogWarning("ViewUser access denied. PolicyNumber: {PolicyNumber}, UserSessionId: {UserSessionId}, CurrentSessionId: {ConversationId}",
@@ -136,9 +150,8 @@ namespace ChatBot_BE.Services
             if (!string.IsNullOrEmpty(user.PhoneNumber))
                 response += $"- Phone: {user.PhoneNumber}\n";
             if (!string.IsNullOrEmpty(user.City))
-                response += $"- Location: {user.City}, {user.State}\n";
-            response += $"- Created: {user.CreatedAt:yyyy-MM-dd HH:mm} UTC";
-            return response;
+                response += $"- Location: {user.City}, {user.State}";
+            return response.TrimEnd();
         }
 
         [KernelFunction("list_all_users")]
@@ -155,9 +168,10 @@ namespace ChatBot_BE.Services
                 return "📭 No policy records found in the system.";
             }
 
-            // Filter to show records from current session OR system-seeded records (empty/null ID)
+            // Filter to show records from current session OR system-seeded records (empty/null ID or SEEDED_RECORD)
             var sessionUsers = users
                 .Where(u => string.IsNullOrEmpty(u.OwnerSessionId) || 
+                            u.OwnerSessionId == "SEEDED_RECORD" ||
                             string.Equals(u.OwnerSessionId, _context.ConversationId, StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
@@ -176,12 +190,97 @@ namespace ChatBot_BE.Services
                 sb.AppendLine($"- {user.FirstName} {user.LastName}");
                 sb.AppendLine($"  - Policy: {user.PolicyNumber}");
                 sb.AppendLine($"  - Email: {user.Email}");
-                sb.AppendLine($"  - Created: {user.CreatedAt:yyyy-MM-dd HH:mm} UTC");
                 sb.AppendLine();
             }
 
             _logger.LogInformation("ListAllUsers: Returned {Count} records for session", sessionUsers.Count);
             return sb.ToString().TrimEnd();
+        }
+
+        [KernelFunction("update_user")]
+        [Description("Update an existing user policy record with new details")]
+        public async Task<string> UpdateUser(
+            [Description("User's policy number")] string policyNumber,
+            [Description("User's new first name")] string? firstName = null,
+            [Description("User's new last name")] string? lastName = null,
+            [Description("User's new email address")] string? email = null,
+            [Description("New policy type: Personal, Vehicle, or Medical")] string? policyType = null,
+            [Description("New policy name")] string? policyName = null,
+            [Description("User's new phone number")] string? phoneNumber = null)
+        {
+            _logger.LogDebug("UpdateUser called. PolicyNumber: {PolicyNumber}, ConversationId: {ConversationId}",
+                policyNumber, _context.ConversationId);
+
+            if (string.IsNullOrWhiteSpace(policyNumber))
+            {
+                _logger.LogWarning("UpdateUser failed: Policy number is required");
+                return "⚠️ Policy number is required to update a record.";
+            }
+
+            var user = await _users.GetByPolicyNumberAsync(policyNumber);
+            if (user == null)
+            {
+                _logger.LogWarning("UpdateUser failed: No record found. PolicyNumber: {PolicyNumber}", policyNumber);
+                return $"❌ No record found for policy number '{policyNumber}'.";
+            }
+
+            bool isUpdated = false;
+
+            if (!string.IsNullOrWhiteSpace(firstName) && !string.Equals(user.FirstName, firstName, StringComparison.OrdinalIgnoreCase)) { user.FirstName = firstName; isUpdated = true; }
+            if (!string.IsNullOrWhiteSpace(lastName) && !string.Equals(user.LastName, lastName, StringComparison.OrdinalIgnoreCase)) { user.LastName = lastName; isUpdated = true; }
+            if (!string.IsNullOrWhiteSpace(email) && !string.Equals(user.Email, email, StringComparison.OrdinalIgnoreCase))
+            {
+                if (!IsValidEmail(email))
+                {
+                    _logger.LogWarning("UpdateUser failed: Invalid email format. Email: {Email}", email);
+                    return $"⚠️ Email '{email}' is invalid. Please enter a valid email address.";
+                }
+
+                var existingEmail = await _users.GetByEmailAsync(email);
+                if (existingEmail != null && existingEmail.Id != user.Id)
+                {
+                    return $"⚠️ Email '{email}' is already in use by another record. Please provide a different email.";
+                }
+                user.Email = email;
+                isUpdated = true;
+            }
+            if (!string.IsNullOrWhiteSpace(policyType) && !string.Equals(user.PolicyType, policyType, StringComparison.OrdinalIgnoreCase)) { user.PolicyType = policyType; isUpdated = true; }
+            if (!string.IsNullOrWhiteSpace(policyName) && !string.Equals(user.PolicyName, policyName, StringComparison.OrdinalIgnoreCase)) { user.PolicyName = policyName; isUpdated = true; }
+            if (!string.IsNullOrWhiteSpace(phoneNumber) && !string.Equals(user.PhoneNumber, phoneNumber, StringComparison.OrdinalIgnoreCase)) { user.PhoneNumber = phoneNumber; isUpdated = true; }
+
+            if (!isUpdated)
+            {
+                return "⚠️ No valid fields were provided to update, or the provided values are identical to the existing ones.";
+            }
+
+            user.UpdatedAt = DateTime.UtcNow;
+
+            try
+            {
+                var ok = await _users.UpdateAsync(user.Id, user);
+                if (ok)
+                {
+                    _logger.LogInformation("User record updated successfully. PolicyNumber: {PolicyNumber}", policyNumber);
+                    return $"TOOL RESULT: Record with policy number '{policyNumber}' has been updated successfully.";
+                }
+                else
+                {
+                    _logger.LogError("UpdateUser failed during UpdateAsync. PolicyNumber: {PolicyNumber}", policyNumber);
+                    return $"❌ Failed to update record for policy number '{policyNumber}'.";
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to update user record. PolicyNumber: {PolicyNumber}", policyNumber);
+                return $"⚠️ {ex.Message}";
+            }
+        }
+
+        private static bool IsValidEmail(string email)
+        {
+            if (string.IsNullOrWhiteSpace(email)) return false;
+            // Simplified regex for email validation
+            return Regex.IsMatch(email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$", RegexOptions.IgnoreCase);
         }
 
         [KernelFunction("delete_user")]

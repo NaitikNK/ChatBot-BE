@@ -11,7 +11,6 @@ using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure Serilog
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Debug()
     .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
@@ -21,11 +20,6 @@ Log.Logger = new LoggerConfiguration()
     .Enrich.WithThreadId()
     .WriteTo.Console(
         outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
-    .WriteTo.File(
-        path: "logs/chatbot-.log",
-        rollingInterval: RollingInterval.Day,
-        retainedFileCountLimit: 7,
-        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
     .CreateLogger();
 
 builder.Host.UseSerilog();
@@ -237,11 +231,11 @@ try
     using var scope = app.Services.CreateScope();
     var knowledgeBase = scope.ServiceProvider.GetRequiredService<IKnowledgeBaseService>();
     await KnowledgeBaseSeeder.SeedAsync(knowledgeBase, app.Environment);
-    Log.Information("Knowledge base seeded successfully");
+    app.Logger.LogInformation("Knowledge base seeded successfully");
 }
 catch (Exception ex)
 {
-    Log.Error(ex, "Failed to seed knowledge base");
+    app.Logger.LogError(ex, "Failed to seed knowledge base");
 }
 
 // Seed fake user data for testing
@@ -250,11 +244,11 @@ try
     using var scope = app.Services.CreateScope();
     var userStore = scope.ServiceProvider.GetRequiredService<IUserStore>();
     await UserSeeder.SeedAsync(userStore);
-    Log.Information("User data seeded successfully");
+    app.Logger.LogInformation("User data seeded successfully");
 }
 catch (Exception ex)
 {
-    Log.Error(ex, "Failed to seed user data");
+    app.Logger.LogError(ex, "Failed to seed user data");
 }
 
 // Seed policy data
@@ -265,11 +259,11 @@ try
     await context.Database.EnsureCreatedAsync();
     await PolicySeeder.SeedAsync(context);
     var typesCount = await context.PolicyTypes.CountAsync();
-    Log.Information("Policy data seeded successfully: {count} types found.", typesCount);
+    app.Logger.LogInformation("Policy data seeded successfully: {count} types found.", typesCount);
 }
 catch (Exception ex)
 {
-    Log.Error(ex, "Failed to seed policy data");
+    app.Logger.LogError(ex, "Failed to seed policy data");
 }
 
 app.Run();

@@ -24,7 +24,7 @@ namespace ChatBot_BE.Data
                     PostalCode = "390001",
                     Country = "India",
                     DateOfBirth = DateTime.Parse("1998-05-12"),
-                    OwnerSessionId = ""
+                    OwnerSessionId = "SEEDED_RECORD"
                 },
                 new()
                 {
@@ -41,7 +41,7 @@ namespace ChatBot_BE.Data
                     PostalCode = "380015",
                     Country = "India",
                     DateOfBirth = DateTime.Parse("1990-11-25"),
-                    OwnerSessionId = ""
+                    OwnerSessionId = "SEEDED_RECORD"
                 },
                 new()
                 {
@@ -58,7 +58,7 @@ namespace ChatBot_BE.Data
                     PostalCode = "400002",
                     Country = "India",
                     DateOfBirth = DateTime.Parse("1995-03-18"),
-                    OwnerSessionId = ""
+                    OwnerSessionId = "SEEDED_RECORD"
                 },
                 new()
                 {
@@ -75,7 +75,7 @@ namespace ChatBot_BE.Data
                     PostalCode = "700016",
                     Country = "India",
                     DateOfBirth = DateTime.Parse("1988-07-09"),
-                    OwnerSessionId = ""
+                    OwnerSessionId = "SEEDED_RECORD"
                 },
                 new()
                 {
@@ -92,7 +92,7 @@ namespace ChatBot_BE.Data
                     PostalCode = "500034",
                     Country = "India",
                     DateOfBirth = DateTime.Parse("1992-01-30"),
-                    OwnerSessionId = ""
+                    OwnerSessionId = "SEEDED_RECORD"
                 }
             };
 

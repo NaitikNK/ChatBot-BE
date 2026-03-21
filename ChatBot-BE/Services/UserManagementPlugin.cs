@@ -31,8 +31,14 @@ namespace ChatBot_BE.Services
             [Description("User's policy number. Leave empty to auto-generate.")] string? policyNumber = null,
             [Description("Policy type: Personal, Vehicle, or Medical")] string policyType = "Personal",
             [Description("Policy name (e.g., Personal Shield Plan, Auto Insurance, Health Insurance, Car Protection Plan, Bike Insurance Plan, Group Health, etc.)")] string? policyName = null,
-            [Description("User's phone number")] string? phoneNumber = null)
+            [Description("User's phone number (Must be exactly 10 digits)")] string? phoneNumber = null)
         {
+            if (!string.IsNullOrWhiteSpace(phoneNumber) && !IsValidMobile(phoneNumber))
+            {
+                _logger.LogWarning("CreateUser failed: Invalid mobile number format. PhoneNumber: {PhoneNumber}", phoneNumber);
+                return $"⚠️ Mobile number '{phoneNumber}' is invalid. Please provide exactly 10 numeric digits.";
+            }
+
             if (string.IsNullOrWhiteSpace(policyNumber))
             {
                 policyNumber = "POL-" + Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper();
@@ -246,7 +252,16 @@ namespace ChatBot_BE.Services
             }
             if (!string.IsNullOrWhiteSpace(policyType) && !string.Equals(user.PolicyType, policyType, StringComparison.OrdinalIgnoreCase)) { user.PolicyType = policyType; isUpdated = true; }
             if (!string.IsNullOrWhiteSpace(policyName) && !string.Equals(user.PolicyName, policyName, StringComparison.OrdinalIgnoreCase)) { user.PolicyName = policyName; isUpdated = true; }
-            if (!string.IsNullOrWhiteSpace(phoneNumber) && !string.Equals(user.PhoneNumber, phoneNumber, StringComparison.OrdinalIgnoreCase)) { user.PhoneNumber = phoneNumber; isUpdated = true; }
+            if (!string.IsNullOrWhiteSpace(phoneNumber) && !string.Equals(user.PhoneNumber, phoneNumber, StringComparison.OrdinalIgnoreCase)) 
+            {
+                if (!IsValidMobile(phoneNumber))
+                {
+                    _logger.LogWarning("UpdateUser failed: Invalid mobile number format. PhoneNumber: {PhoneNumber}", phoneNumber);
+                    return $"⚠️ Mobile number '{phoneNumber}' is invalid. Please provide exactly 10 numeric digits.";
+                }
+                user.PhoneNumber = phoneNumber; 
+                isUpdated = true; 
+            }
 
             if (!isUpdated)
             {
@@ -279,8 +294,16 @@ namespace ChatBot_BE.Services
         private static bool IsValidEmail(string email)
         {
             if (string.IsNullOrWhiteSpace(email)) return false;
-            // Simplified regex for email validation
+            // Robust regex for email validation
             return Regex.IsMatch(email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$", RegexOptions.IgnoreCase);
+        }
+
+        private static bool IsValidMobile(string mobile)
+        {
+            if (string.IsNullOrWhiteSpace(mobile)) return false;
+            // Clean non-numeric characters first
+            var cleaned = Regex.Replace(mobile, @"[^\d]", "");
+            return cleaned.Length == 10 && cleaned == mobile.Trim();
         }
 
         [KernelFunction("delete_user")]

@@ -114,5 +114,46 @@ namespace ChatBot_BE.Services
                 };
             }
         }
+
+        public async Task<string> GetGreetingAsync()
+        {
+            try
+            {
+                var history = new ChatHistory();
+                // Send a concise system instruction specifically for the greeting
+                history.AddSystemMessage(@"You are Allison, an Insurance specialist. Follow these greeting rules EXACTLY:
+1. Start with exactly: 'Hello! I'm Allison, your personal Insurance Agent.'
+2. State that you're here to help explore insurance offerings, manage records, and answer questions.
+3. End with: 'How can I assist you today?'
+4. Never mention being an AI assistant.");
+                
+                history.AddUserMessage("Please introduce yourself according to your greeting instructions.");
+
+                var executionSettings = new OpenAIPromptExecutionSettings
+                {
+                    Temperature = 0.5, 
+                    MaxTokens = 1000 // Increased to allow for 'thinking' tokens in Kimi models
+                };
+
+                var response = await _chatCompletion.GetChatMessageContentAsync(
+                    history,
+                    executionSettings,
+                    _kernel);
+
+                var content = response.Content?.Trim();
+                if (string.IsNullOrWhiteSpace(content))
+                {
+                    _logger.LogWarning("AI returned empty content for dynamic greeting.");
+                    return "Allison: [Dynamic Greeting Failed to Generate]";
+                }
+                
+                return content;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to generate dynamic greeting from OpenAI.");
+                return $"Allison: [Error generating dynamic greeting: {ex.Message}]";
+            }
+        }
     }
 }

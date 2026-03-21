@@ -95,6 +95,20 @@ namespace ChatBot_BE.Controllers
             });
         }
 
+        /// <summary>
+        /// Retrieves the default AI greeting message dynamically from the agent.
+        /// </summary>
+        [HttpGet("greeting")]
+        public async Task<IActionResult> GetGreeting()
+        {
+            var greeting = await _aiService.GetGreetingAsync();
+            return Ok(new ApiResponse<string>
+            {
+                Success = true,
+                Data = greeting
+            });
+        }
+
         private static string ToShortHash(string input)
         {
             var bytes = Encoding.UTF8.GetBytes(input ?? string.Empty);

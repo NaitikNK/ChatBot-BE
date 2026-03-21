@@ -25,6 +25,16 @@ namespace ChatBot_BE.Controllers
         }
 
         /// <summary>
+        /// Generates a new unique policy number.
+        /// </summary>
+        [HttpGet("generate-policy-number")]
+        public ActionResult<ApiResponse<string>> GeneratePolicyNumber()
+        {
+            var number = "POL-" + Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper();
+            return Ok(new ApiResponse<string> { Success = true, Data = number });
+        }
+
+        /// <summary>
         /// Gets all users currently in the system.
         /// </summary>
         [HttpGet]
@@ -158,6 +168,12 @@ namespace ChatBot_BE.Controllers
         [HttpPut("{id}")]
         public async Task<ActionResult<ApiResponse<object>>> Update(int id, [FromBody] UserUpdateRequest request)
         {
+            var existing = await _users.GetAsync(id);
+            if (existing != null && existing.OwnerSessionId == "SEEDED_RECORD")
+            {
+                return BadRequest(new ApiResponse<object> { Success = false, Error = "Cannot modify default seeded records." });
+            }
+
             try
             {
                 var ok = await _users.UpdateAsync(id, new User
@@ -195,6 +211,12 @@ namespace ChatBot_BE.Controllers
         [HttpDelete("{id}")]
         public async Task<ActionResult<ApiResponse<object>>> Delete(int id)
         {
+            var existing = await _users.GetAsync(id);
+            if (existing != null && existing.OwnerSessionId == "SEEDED_RECORD")
+            {
+                return BadRequest(new ApiResponse<object> { Success = false, Error = "Cannot delete default seeded records." });
+            }
+
             var ok = await _users.DeleteAsync(id);
             return ok
                 ? Ok(new ApiResponse<object> { Success = true })
@@ -207,6 +229,12 @@ namespace ChatBot_BE.Controllers
         [HttpDelete("by-policy/{policyNumber}")]
         public async Task<ActionResult<ApiResponse<object>>> DeleteByPolicyNumber(string policyNumber)
         {
+            var existing = await _users.GetByPolicyNumberAsync(policyNumber);
+            if (existing != null && existing.OwnerSessionId == "SEEDED_RECORD")
+            {
+                return BadRequest(new ApiResponse<object> { Success = false, Error = "Cannot delete default seeded records." });
+            }
+
             var ok = await _users.DeleteByPolicyNumberAsync(policyNumber);
             return ok
                 ? Ok(new ApiResponse<object> { Success = true })
@@ -236,6 +264,7 @@ namespace ChatBot_BE.Controllers
                 PostalCode = user.PostalCode,
                 Country = user.Country,
                 DateOfBirth = user.DateOfBirth,
+                IsDefault = user.OwnerSessionId == "SEEDED_RECORD",
                 CreatedAt = user.CreatedAt,
                 UpdatedAt = user.UpdatedAt
             };

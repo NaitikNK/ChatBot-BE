@@ -41,7 +41,7 @@ public class UserManagementPluginTests
         }));
 
         // Act
-        var result = await _plugin.CreateUser("John", "Doe", "POL123", "john@example.com");
+        var result = await _plugin.CreateUser("John", "Doe", "john@example.com", "POL123");
 
         // Assert
         result.Should().Contain("TOOL RESULT: Policy record created successfully!");
@@ -53,7 +53,7 @@ public class UserManagementPluginTests
     public async Task CreateUser_ShouldReturnErrorWhenMissingFields()
     {
         // Act
-        var result = await _plugin.CreateUser("", "Doe", "POL123", "john@example.com");
+        var result = await _plugin.CreateUser("", "Doe", "john@example.com", "POL123");
 
         // Assert
         result.Should().Contain("⚠️ Missing required fields");
@@ -75,7 +75,7 @@ public class UserManagementPluginTests
         }));
 
         // Act
-        var result = await _plugin.CreateUser("John", "Doe", "POL123", "john@example.com");
+        var result = await _plugin.CreateUser("John", "Doe", "john@example.com", "POL123");
 
         // Assert
         result.Should().Contain("⚠️ Policy number 'POL123' already exists");
@@ -98,10 +98,20 @@ public class UserManagementPluginTests
         }));
 
         // Act
-        var result = await _plugin.CreateUser("John", "Doe", "POL123", "john@example.com");
+        var result = await _plugin.CreateUser("John", "Doe", "john@example.com", "POL123");
 
         // Assert
         result.Should().Contain("⚠️ Email 'john@example.com' is already in use");
+    }
+
+    [Fact]
+    public async Task CreateUser_ShouldReturnErrorWhenEmailIsInvalid()
+    {
+        // Act
+        var result = await _plugin.CreateUser("John", "Doe", "invalid-email", "POL123");
+
+        // Assert
+        result.Should().Contain("⚠️ Email 'invalid-email' is invalid");
     }
 
     [Fact]
@@ -185,6 +195,59 @@ public class UserManagementPluginTests
         // Assert
         result.Should().Contain("TOOL RESULT: Record found:");
         result.Should().Contain("System User");
+    }
+
+    [Fact]
+    public async Task UpdateUser_ShouldUpdateAndReturnSuccessMessage()
+    {
+        // Arrange
+        var user = new User
+        {
+            Id = 1,
+            FirstName = "John",
+            LastName = "Doe",
+            PolicyNumber = "POL123",
+            Email = "john@example.com",
+            OwnerSessionId = _context.ConversationId,
+            CreatedAt = DateTime.UtcNow
+        };
+        _userStore.GetByPolicyNumberAsync("POL123").Returns(Task.FromResult<User?>(user));
+        _userStore.UpdateAsync(user.Id, Arg.Any<User>()).Returns(Task.FromResult(true));
+
+        // Act
+        var result = await _plugin.UpdateUser("POL123", firstName: "Jonathan", policyType: "Vehicle");
+
+        // Assert
+        result.Should().Contain("TOOL RESULT: Record with policy number 'POL123' has been updated successfully.");
+        user.FirstName.Should().Be("Jonathan");
+        user.PolicyType.Should().Be("Vehicle");
+    }
+
+    [Fact]
+    public async Task UpdateUser_ShouldReturnErrorWhenEmailIsInvalid()
+    {
+        // Arrange
+        var user = new User { PolicyNumber = "POL123", OwnerSessionId = _context.ConversationId };
+        _userStore.GetByPolicyNumberAsync("POL123").Returns(user);
+
+        // Act
+        var result = await _plugin.UpdateUser("POL123", email: "invalid-email");
+
+        // Assert
+        result.Should().Contain("⚠️ Email 'invalid-email' is invalid");
+    }
+
+    [Fact]
+    public async Task UpdateUser_ShouldReturnErrorWhenNotFound()
+    {
+        // Arrange
+        _userStore.GetByPolicyNumberAsync("POL123").Returns((User?)null);
+
+        // Act
+        var result = await _plugin.UpdateUser("POL123", firstName: "Jonathan");
+
+        // Assert
+        result.Should().Contain("❌ No record found");
     }
 
     [Fact]

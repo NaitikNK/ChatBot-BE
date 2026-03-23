@@ -11,7 +11,11 @@ namespace ChatBot_BE.Data
             var adminRole = await context.Roles.FirstOrDefaultAsync(r => r.RoleName == "Admin");
             var userRole = await context.Roles.FirstOrDefaultAsync(r => r.RoleName == "User");
 
-            if (adminRole == null || userRole == null) return;
+            if (adminRole == null || userRole == null) 
+            {
+                // This is a sign that RoleSeeder failed or wasn't called
+                throw new InvalidOperationException("Cannot seed users because mandatory Roles (Admin/User) are missing.");
+            }
 
             var users = new List<User>
             {

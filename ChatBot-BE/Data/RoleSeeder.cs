@@ -7,7 +7,11 @@ namespace ChatBot_BE.Data
     {
         public static async Task SeedAsync(AppDbContext context)
         {
-            if (await context.Roles.AnyAsync()) return;
+            if (await context.Roles.AnyAsync()) 
+            {
+                // Already has data, skip
+                return;
+            }
 
             var roles = new List<Role>
             {

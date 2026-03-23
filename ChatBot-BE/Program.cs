@@ -235,9 +235,21 @@ try
     var policyStore = scope.ServiceProvider.GetRequiredService<IPolicyStore>();
     var knowledgeBase = scope.ServiceProvider.GetRequiredService<IKnowledgeBaseService>();
 
-    // Step 1: Ensure DB and Masters
-    await context.Database.EnsureCreatedAsync();
-    app.Logger.LogInformation("Database ensured.");
+    // Diagnostic: Print Connection Host (Masked)
+    var rawConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+    try
+    {
+        var npgsqlBuilder = new Npgsql.NpgsqlConnectionStringBuilder(rawConnectionString);
+        app.Logger.LogInformation("Attempting to connect to Database: {Host}/{Database}", npgsqlBuilder.Host, npgsqlBuilder.Database);
+    }
+    catch
+    {
+        app.Logger.LogWarning("Could not parse connection string for diagnostic logging.");
+    }
+
+    // Step 1: Migrate DB (Creates tables if they don't exist based on Migrations)
+    await context.Database.MigrateAsync();
+    app.Logger.LogInformation("Database migrated successfully.");
 
     // Step 2: Seed Roles (Mandatory for Users)
     await RoleSeeder.SeedAsync(context);
@@ -257,7 +269,9 @@ try
 }
 catch (Exception ex)
 {
-    app.Logger.LogError(ex, "Failed to initialize or seed the database.");
+    app.Logger.LogCritical(ex, "FATAL: Database initialization or seeding failed. the application will not start.");
+    // Force exit so Render knows the deploy failed
+    Environment.Exit(1);
 }
 
 app.Run();

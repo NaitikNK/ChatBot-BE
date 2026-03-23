@@ -112,7 +112,7 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseInMemoryDatabase("ChatBotDb"));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Configure rate limiting
 builder.Services.AddRateLimiter(rateLimiterOptions =>
@@ -159,9 +159,10 @@ builder.Services.AddCors(options =>
               .AllowAnyMethod());
 });
 
-// In-memory persistence (no database)
-builder.Services.AddSingleton<IUserStore, InMemoryUserStore>();
-builder.Services.AddSingleton<IChatSessionStore, InMemoryChatSessionStore>();
+// EF persistence
+builder.Services.AddScoped<IUserStore, EfUserStore>();
+builder.Services.AddScoped<IPolicyStore, EfPolicyStore>(); // New store
+builder.Services.AddScoped<IChatSessionStore, DbChatSessionStore>();
 
 // Scoped conversation context for plugin access
 builder.Services.AddScoped<IConversationContext, ConversationContext>();
@@ -225,45 +226,38 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// Initialize and seed the knowledge base
-try
-{
-    using var scope = app.Services.CreateScope();
-    var knowledgeBase = scope.ServiceProvider.GetRequiredService<IKnowledgeBaseService>();
-    await KnowledgeBaseSeeder.SeedAsync(knowledgeBase, app.Environment);
-    app.Logger.LogInformation("Knowledge base seeded successfully");
-}
-catch (Exception ex)
-{
-    app.Logger.LogError(ex, "Failed to seed knowledge base");
-}
-
-// Seed fake user data for testing
-try
-{
-    using var scope = app.Services.CreateScope();
-    var userStore = scope.ServiceProvider.GetRequiredService<IUserStore>();
-    await UserSeeder.SeedAsync(userStore);
-    app.Logger.LogInformation("User data seeded successfully");
-}
-catch (Exception ex)
-{
-    app.Logger.LogError(ex, "Failed to seed user data");
-}
-
-// Seed policy data
+// Initialize and seed the database
 try
 {
     using var scope = app.Services.CreateScope();
     var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var userStore = scope.ServiceProvider.GetRequiredService<IUserStore>();
+    var policyStore = scope.ServiceProvider.GetRequiredService<IPolicyStore>();
+    var knowledgeBase = scope.ServiceProvider.GetRequiredService<IKnowledgeBaseService>();
+
+    // Step 1: Ensure DB and Masters
     await context.Database.EnsureCreatedAsync();
-    await PolicySeeder.SeedAsync(context);
-    var typesCount = await context.PolicyTypes.CountAsync();
-    app.Logger.LogInformation("Policy data seeded successfully: {count} types found.", typesCount);
+    app.Logger.LogInformation("Database ensured.");
+
+    // Step 2: Seed Roles (Mandatory for Users)
+    await RoleSeeder.SeedAsync(context);
+    app.Logger.LogInformation("Roles seeded.");
+
+    // Step 3: Seed Users (Mandatory for Policies)
+    await UserSeeder.SeedAsync(userStore, context);
+    app.Logger.LogInformation("Users seeded.");
+
+    // Step 4: Seed Policies
+    await PolicySeeder.SeedAsync(policyStore, context);
+    app.Logger.LogInformation("Policies seeded.");
+
+    // Step 5: Knowledge Base
+    await KnowledgeBaseSeeder.SeedAsync(knowledgeBase, app.Environment);
+    app.Logger.LogInformation("Knowledge base seeded.");
 }
 catch (Exception ex)
 {
-    app.Logger.LogError(ex, "Failed to seed policy data");
+    app.Logger.LogError(ex, "Failed to initialize or seed the database.");
 }
 
 app.Run();

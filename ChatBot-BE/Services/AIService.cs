@@ -49,24 +49,40 @@ namespace ChatBot_BE.Services
             // Set the conversation context on the plugin so it can do session-ownership checks
             _context.ConversationId = conversationId;
 
-            var session = _sessions.GetOrCreate(conversationId);
+            var session = await _sessions.GetOrCreateAsync(conversationId);
 
-            // Add the system prompt if this is a fresh conversation
-            if (session.History.Count == 0)
+            var authStatus = _context.IsAuthenticated ? "Authenticated User" : "Guest User";
+            var systemPrompt = Shared.AiPrompts.SystemPrompt + $"\n\nCURRENT USER STATUS: {authStatus}";
+
+            // Ensure the system message is always up-to-date at the start of history
+            if (session.History.Count == 0 || session.History[0].Role != AuthorRole.System)
             {
-                session.History.AddSystemMessage(Shared.AiPrompts.SystemPrompt);
+                session.History.Insert(0, new ChatMessageContent(AuthorRole.System, systemPrompt));
+            }
+            else
+            {
+                // Update existing system message
+                session.History[0] = new ChatMessageContent(AuthorRole.System, systemPrompt);
+            }
+            
+            // Persist system prompt if it was a new session (optional but helps)
+            if (session.History.Count == 1)
+            {
+                await _sessions.SaveMessageAsync(conversationId, "system", systemPrompt, null);
             }
 
-            // Add user message
+            // Add and persist user message
             session.History.AddUserMessage(message);
+            int? currentUserId = _context.UserId;
+            await _sessions.SaveMessageAsync(conversationId, "user", message, currentUserId);
 
             // Configure execution settings for Kimi (OpenAI API)
             var executionSettings = new OpenAIPromptExecutionSettings
             {
                 FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(),
-                Temperature = 1,        // Set according to user preference
-                TopP = 0.9,             // Set according to user preference
-                MaxTokens = 2000        // Maximum response length
+                Temperature = 1,
+                TopP = 0.9,
+                MaxTokens = 2000
             };
 
             try
@@ -81,8 +97,9 @@ namespace ChatBot_BE.Services
 
                 var answer = response.Content?.Trim() ?? "I'm processing that for you.";
 
-                // Add assistant response to history
+                // Add and persist assistant response
                 session.History.AddAssistantMessage(answer);
+                await _sessions.SaveMessageAsync(conversationId, "assistant", answer, currentUserId);
 
                 // Trim history to prevent token limit issues
                 session.TrimHistory();
@@ -103,10 +120,7 @@ namespace ChatBot_BE.Services
                     ex.Message, 
                     ex.InnerException?.Message ?? "none");
 
-                // Remove the user message we just added since we failed
-                if (session.History.Count > 0)
-                    session.History.RemoveAt(session.History.Count - 1);
-
+                // We keep the user message in DB as a record of what happened even if AI failed
                 return new ChatReply
                 {
                     ConversationId = conversationId,

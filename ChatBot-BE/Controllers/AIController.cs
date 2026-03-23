@@ -15,10 +15,13 @@ namespace ChatBot_BE.Controllers
         private readonly IAIService _aiService;
         private readonly IInputValidator _inputValidator;
 
-        public AIController(IAIService aiService, IInputValidator inputValidator)
+        private readonly IConversationContext _context;
+
+        public AIController(IAIService aiService, IInputValidator inputValidator, IConversationContext context)
         {
             _aiService = aiService;
             _inputValidator = inputValidator;
+            _context = context;
         }
 
         /// <summary>
@@ -82,6 +85,18 @@ namespace ChatBot_BE.Controllers
                 Path = "/",
                 Expires = DateTimeOffset.UtcNow.AddDays(7)
             });
+
+            // Read Auth headers
+            if (Request.Headers.TryGetValue("X-User-Id", out var userIdVal) && int.TryParse(userIdVal, out var userId))
+            {
+                _context.IsAuthenticated = true;
+                _context.UserId = userId;
+            }
+            _context.ConversationId = conversationId; // Always use the actual session ID
+            if (Request.Headers.TryGetValue("X-User-Role", out var roleVal))
+            {
+                _context.Role = roleVal.ToString();
+            }
 
             var result = await _aiService.GetResponse(request);
             return Ok(new ApiResponse<ChatReply> 

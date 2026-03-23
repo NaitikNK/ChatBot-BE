@@ -1,6 +1,8 @@
-using ChatBot_BE.Dto;
-using ChatBot_BE.Services;
 using Microsoft.AspNetCore.Mvc;
+using ChatBot_BE.Services;
+using ChatBot_BE.Dto;
+using ChatBot_BE.Model;
+using ChatBot_BE.Data;
 
 namespace ChatBot_BE.Controllers
 {
@@ -8,54 +10,192 @@ namespace ChatBot_BE.Controllers
     [Route("api/policies")]
     public class PolicyController : ControllerBase
     {
+        private readonly IPolicyStore _policyStore;
         private readonly IPolicyService _policyService;
 
-        public PolicyController(IPolicyService policyService)
+        public PolicyController(IPolicyStore policyStore, IPolicyService policyService)
         {
+            _policyStore = policyStore;
             _policyService = policyService;
         }
 
-        /// <summary>
-        /// Gets all available policy types (e.g., Personal, Vehicle, Medical).
-        /// </summary>
+        [HttpGet("generate-policy-number")]
+        public ActionResult<ApiResponse<string>> GeneratePolicyNumber()
+        {
+            var number = "POL-" + Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper();
+            return Ok(new ApiResponse<string> { Success = true, Data = number });
+        }
+
         [HttpGet("types")]
         public async Task<ActionResult<ApiResponse<List<DropdownOptionDto>>>> GetPolicyTypes()
         {
             var types = await _policyService.GetPolicyTypesAsync();
+            return Ok(new ApiResponse<List<DropdownOptionDto>> { Success = true, Data = types });
+        }
 
-            return Ok(new ApiResponse<List<DropdownOptionDto>>
+        [HttpGet("names/{typeId}")]
+        public async Task<ActionResult<ApiResponse<List<DropdownOptionDto>>>> GetPolicyNames(string typeId)
+        {
+            var names = await _policyService.GetPolicyNamesByTypeAsync(typeId);
+            return Ok(new ApiResponse<List<DropdownOptionDto>> { Success = true, Data = names });
+        }
+
+        [HttpGet]
+        public async Task<ActionResult<ApiResponse<List<PolicyResponse>>>> GetAll()
+        {
+            var policies = await _policyStore.GetAllAsync();
+            var responses = new List<PolicyResponse>();
+            foreach (var p in policies)
+            {
+                responses.Add(await ToResponseAsync(p));
+            }
+
+            return Ok(new ApiResponse<List<PolicyResponse>> { Success = true, Data = responses });
+        }
+
+        [HttpGet("list")]
+        public async Task<ActionResult<ApiResponse<PagedResponse<PolicyResponse>>>> GetList(
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10)
+        {
+            pageSize = Math.Max(1, Math.Min(pageSize, 100));
+            pageNumber = Math.Max(1, pageNumber);
+
+            var (policies, totalCount) = await _policyStore.GetPagedAsync(pageNumber, pageSize);
+            var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+
+            var items = new List<PolicyResponse>();
+            foreach (var p in policies)
+            {
+                items.Add(await ToResponseAsync(p));
+            }
+
+            return Ok(new ApiResponse<PagedResponse<PolicyResponse>>
             {
                 Success = true,
-                Data = types
+                Data = new PagedResponse<PolicyResponse>
+                {
+                    Items = items,
+                    PageNumber = pageNumber,
+                    PageSize = pageSize,
+                    TotalCount = totalCount,
+                    TotalPages = totalPages
+                }
             });
         }
 
-        /// <summary>
-        /// Gets all policy names associated with a specific policy type.
-        /// </summary>
-        /// <param name="typeId">The ID or name of the policy type.</param>
-        /// <param name="type">Alias for typeId.</param>
-        [HttpGet("names")]
-        public async Task<ActionResult<ApiResponse<List<DropdownOptionDto>>>> GetPolicyNames([FromQuery] string? typeId, [FromQuery] string? type)
+        [HttpGet("{id}")]
+        public async Task<ActionResult<ApiResponse<PolicyResponse>>> Get(int id)
         {
-            var efficientTypeId = typeId ?? type;
+            var policy = await _policyStore.GetAsync(id);
+            if (policy == null) return NotFound(new ApiResponse<PolicyResponse> { Success = false, Error = "Not found." });
+            return Ok(new ApiResponse<PolicyResponse> { Success = true, Data = await ToResponseAsync(policy) });
+        }
 
-            if (string.IsNullOrEmpty(efficientTypeId))
+        [HttpPost]
+        public async Task<ActionResult<ApiResponse<PolicyResponse>>> Create([FromBody] PolicyCreateRequest request)
+        {
+            try
             {
-                return BadRequest(new ApiResponse<List<DropdownOptionDto>>
+                var created = await _policyStore.AddAsync(new Policy
                 {
-                    Success = false,
-                    Error = "Policy type ID (typeId or type) is required."
+                    FirstName = request.FirstName,
+                    LastName = request.LastName,
+                    PolicyNumber = request.PolicyNumber,
+                    Email = request.Email,
+                    PolicyType = request.PolicyType,
+                    PolicyName = request.PolicyName,
+                    PhoneNumber = request.PhoneNumber,
+                    Address = request.Address,
+                    City = request.City,
+                    State = request.State,
+                    PostalCode = request.PostalCode,
+                    Country = request.Country,
+                    DateOfBirth = request.DateOfBirth,
+                    OwnerSessionId = "",
+                    UserId = request.UserId
                 });
+
+                return CreatedAtAction(nameof(Get), new { id = created.Id }, new ApiResponse<PolicyResponse> { Success = true, Data = await ToResponseAsync(created) });
             }
-
-            var names = await _policyService.GetPolicyNamesByTypeAsync(efficientTypeId);
-
-            return Ok(new ApiResponse<List<DropdownOptionDto>>
+            catch (Exception ex)
             {
-                Success = true,
-                Data = names
-            });
+                return BadRequest(new ApiResponse<PolicyResponse> { Success = false, Error = ex.Message });
+            }
+        }
+
+        [HttpPut("{id}")]
+        public async Task<ActionResult<ApiResponse<object>>> Update(int id, [FromBody] PolicyUpdateRequest request)
+        {
+            var existing = await _policyStore.GetAsync(id);
+            if (existing != null && existing.OwnerSessionId == "SEEDED_RECORD")
+                return BadRequest(new ApiResponse<object> { Success = false, Error = "Cannot modify seeded records." });
+
+            try
+            {
+                var ok = await _policyStore.UpdateAsync(id, new Policy
+                {
+                    FirstName = request.FirstName,
+                    LastName = request.LastName,
+                    PolicyNumber = request.PolicyNumber,
+                    Email = request.Email,
+                    PolicyType = request.PolicyType,
+                    PolicyName = request.PolicyName,
+                    PhoneNumber = request.PhoneNumber,
+                    Address = request.Address,
+                    City = request.City,
+                    State = request.State,
+                    PostalCode = request.PostalCode,
+                    Country = request.Country,
+                    DateOfBirth = request.DateOfBirth
+                });
+                return Ok(new ApiResponse<object> { Success = ok });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ApiResponse<object> { Success = false, Error = ex.Message });
+            }
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<ActionResult<ApiResponse<object>>> Delete(int id)
+        {
+            var existing = await _policyStore.GetAsync(id);
+            if (existing != null && existing.OwnerSessionId == "SEEDED_RECORD")
+                return BadRequest(new ApiResponse<object> { Success = false, Error = "Cannot delete seeded records." });
+
+            var ok = await _policyStore.DeleteAsync(id);
+            return Ok(new ApiResponse<object> { Success = ok });
+        }
+
+        private async Task<PolicyResponse> ToResponseAsync(Policy p)
+        {
+            var (policyTypeId, policyTypeName) = await _policyService.ResolvePolicyTypeAsync(p.PolicyType);
+            var (policyNameId, policyNameName) = await _policyService.ResolvePolicyNameAsync(p.PolicyName);
+
+            return new PolicyResponse
+            {
+                Id = p.Id,
+                FirstName = p.FirstName,
+                LastName = p.LastName,
+                PolicyNumber = p.PolicyNumber,
+                Email = p.Email,
+                PolicyTypeId = policyTypeId,
+                PolicyType = policyTypeName,
+                PolicyNameId = policyNameId,
+                PolicyName = policyNameName,
+                PhoneNumber = p.PhoneNumber,
+                Address = p.Address,
+                City = p.City,
+                State = p.State,
+                PostalCode = p.PostalCode,
+                Country = p.Country,
+                DateOfBirth = p.DateOfBirth,
+                IsDefault = p.OwnerSessionId == "SEEDED_RECORD",
+                CreatedAt = p.CreatedAt,
+                UpdatedAt = p.UpdatedAt,
+                UserId = p.UserId
+            };
         }
     }
 }

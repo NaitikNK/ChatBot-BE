@@ -1,6 +1,10 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using ChatBot_BE.Model;
-using System.Text.RegularExpressions;
+using System.ComponentModel.DataAnnotations;
 
 namespace ChatBot_BE.Services
 {
@@ -8,7 +12,6 @@ namespace ChatBot_BE.Services
     {
         private readonly object _lock = new();
         private readonly Dictionary<int, User> _users = new();
-        private readonly Dictionary<string, int> _policyIndex = new(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, int> _emailIndex = new(StringComparer.OrdinalIgnoreCase);
         private int _nextId = 0;
 
@@ -16,26 +19,7 @@ namespace ChatBot_BE.Services
         {
             lock (_lock)
             {
-                var users = _users.Values
-                    .OrderByDescending(u => u.CreatedAt)
-                    .ToList();
-                return Task.FromResult(users);
-            }
-        }
-
-        public Task<(List<User> Users, int TotalCount)> GetPagedAsync(int pageNumber, int pageSize)
-        {
-            lock (_lock)
-            {
-                var users = _users.Values
-                    .OrderByDescending(u => u.CreatedAt)
-                    .Skip((pageNumber - 1) * pageSize)
-                    .Take(pageSize)
-                    .Select(Clone)
-                    .ToList();
-
-                var totalCount = _users.Count;
-                return Task.FromResult((users, totalCount));
+                return Task.FromResult(_users.Values.OrderByDescending(u => u.CreatedAt).Select(Clone).ToList());
             }
         }
 
@@ -43,125 +27,63 @@ namespace ChatBot_BE.Services
         {
             lock (_lock)
             {
-                User? user = _users.TryGetValue(id, out var found) ? Clone(found) : null;
-                return Task.FromResult(user);
-            }
-        }
-
-        public Task<User?> GetByPolicyNumberAsync(string policyNumber)
-        {
-            if (string.IsNullOrWhiteSpace(policyNumber)) return Task.FromResult<User?>(null);
-
-            lock (_lock)
-            {
-                if (!_policyIndex.TryGetValue(policyNumber.Trim(), out var id)) return Task.FromResult<User?>(null);
-                return Task.FromResult(_users.TryGetValue(id, out var found) ? Clone(found) : null);
+                return Task.FromResult(_users.TryGetValue(id, out var user) ? Clone(user) : null);
             }
         }
 
         public Task<User?> GetByEmailAsync(string email)
         {
             if (string.IsNullOrWhiteSpace(email)) return Task.FromResult<User?>(null);
-
             lock (_lock)
             {
-                if (!_emailIndex.TryGetValue(email.Trim(), out var id)) return Task.FromResult<User?>(null);
-                return Task.FromResult(_users.TryGetValue(id, out var found) ? Clone(found) : null);
+                if (_emailIndex.TryGetValue(email.Trim(), out var id))
+                {
+                    return Task.FromResult(_users.TryGetValue(id, out var user) ? Clone(user) : null);
+                }
+                return Task.FromResult<User?>(null);
             }
         }
 
         public Task<User> AddAsync(User user)
         {
             ValidateRequired(user);
-            var policy = (user.PolicyNumber ?? string.Empty).Trim();
-            var email = (user.Email ?? string.Empty).Trim();
-
-            var created = new User
-            {
-                Id = Interlocked.Increment(ref _nextId),
-                FirstName = user.FirstName,
-                LastName = user.LastName,
-                PolicyNumber = policy,
-                Email = email,
-                PolicyType = user.PolicyType,
-                PolicyName = user.PolicyName,
-                PhoneNumber = user.PhoneNumber,
-                Address = user.Address,
-                City = user.City,
-                State = user.State,
-                PostalCode = user.PostalCode,
-                Country = user.Country,
-                DateOfBirth = user.DateOfBirth,
-                CreatedAt = DateTime.UtcNow,
-                OwnerSessionId = user.OwnerSessionId
-            };
-
             lock (_lock)
             {
-                if (_policyIndex.ContainsKey(created.PolicyNumber))
-                {
-                    throw new InvalidOperationException("PolicyNumber already exists.");
-                }
-
-                if (_emailIndex.ContainsKey(created.Email))
-                {
+                if (_emailIndex.ContainsKey(user.Email.Trim()))
                     throw new InvalidOperationException("Email already exists.");
-                }
 
-                _users[created.Id] = created;
-                _policyIndex[created.PolicyNumber] = created.Id;
-                _emailIndex[created.Email] = created.Id;
+                user.Id = Interlocked.Increment(ref _nextId);
+                user.CreatedAt = DateTime.UtcNow;
+                var stored = Clone(user);
+                _users[stored.Id] = stored;
+                _emailIndex[stored.Email.Trim()] = stored.Id;
+                return Task.FromResult(Clone(stored));
             }
-
-            return Task.FromResult(Clone(created));
         }
 
         public Task<bool> UpdateAsync(int id, User updated)
         {
             ValidateRequired(updated);
-            var newPolicy = (updated.PolicyNumber ?? string.Empty).Trim();
-            var newEmail = (updated.Email ?? string.Empty).Trim();
-
             lock (_lock)
             {
                 if (!_users.TryGetValue(id, out var existing)) return Task.FromResult(false);
 
-                if (!string.Equals(existing.PolicyNumber, newPolicy, StringComparison.OrdinalIgnoreCase))
+                if (!string.Equals(existing.Email, updated.Email, StringComparison.OrdinalIgnoreCase))
                 {
-                    if (_policyIndex.TryGetValue(newPolicy, out var otherId) && otherId != id)
-                    {
-                        throw new InvalidOperationException("PolicyNumber already exists.");
-                    }
-
-                    _policyIndex.Remove(existing.PolicyNumber);
-                    _policyIndex[newPolicy] = id;
-                    existing.PolicyNumber = newPolicy;
-                }
-
-                if (!string.Equals(existing.Email, newEmail, StringComparison.OrdinalIgnoreCase))
-                {
-                    if (_emailIndex.TryGetValue(newEmail, out var otherId) && otherId != id)
-                    {
+                    if (_emailIndex.ContainsKey(updated.Email.Trim()))
                         throw new InvalidOperationException("Email already exists.");
-                    }
 
-                    _emailIndex.Remove(existing.Email);
-                    _emailIndex[newEmail] = id;
-                    existing.Email = newEmail;
+                    _emailIndex.Remove(existing.Email.Trim());
+                    _emailIndex[updated.Email.Trim()] = id;
                 }
 
                 existing.FirstName = updated.FirstName;
                 existing.LastName = updated.LastName;
-                existing.PolicyType = updated.PolicyType;
-                existing.PolicyName = updated.PolicyName;
-                existing.PhoneNumber = updated.PhoneNumber;
-                existing.Address = updated.Address;
-                existing.City = updated.City;
-                existing.State = updated.State;
-                existing.PostalCode = updated.PostalCode;
-                existing.Country = updated.Country;
-                existing.DateOfBirth = updated.DateOfBirth;
-                existing.UpdatedAt = updated.UpdatedAt;
+                existing.Email = updated.Email;
+                existing.RoleId = updated.RoleId;
+                existing.UpdatedAt = DateTime.UtcNow;
+                if (updated.PasswordHash != null) existing.PasswordHash = updated.PasswordHash;
+
                 return Task.FromResult(true);
             }
         }
@@ -171,60 +93,36 @@ namespace ChatBot_BE.Services
             lock (_lock)
             {
                 if (!_users.TryGetValue(id, out var existing)) return Task.FromResult(false);
+                _emailIndex.Remove(existing.Email.Trim());
                 _users.Remove(id);
-                _policyIndex.Remove(existing.PolicyNumber);
-                _emailIndex.Remove(existing.Email);
-                return Task.FromResult(true);
-            }
-        }
-
-        public Task<bool> DeleteByPolicyNumberAsync(string policyNumber)
-        {
-            if (string.IsNullOrWhiteSpace(policyNumber)) return Task.FromResult(false);
-
-            lock (_lock)
-            {
-                if (!_policyIndex.TryGetValue(policyNumber.Trim(), out var id)) return Task.FromResult(false);
-                if (!_users.TryGetValue(id, out var existing)) return Task.FromResult(false);
-                _users.Remove(id);
-                _policyIndex.Remove(existing.PolicyNumber);
-                _emailIndex.Remove(existing.Email);
                 return Task.FromResult(true);
             }
         }
 
         private static void ValidateRequired(User user)
         {
-            var context = new System.ComponentModel.DataAnnotations.ValidationContext(user);
-            var results = new List<System.ComponentModel.DataAnnotations.ValidationResult>();
-            if (!System.ComponentModel.DataAnnotations.Validator.TryValidateObject(user, context, results, true))
+            var context = new ValidationContext(user);
+            var results = new List<ValidationResult>();
+            if (!Validator.TryValidateObject(user, context, results, true))
             {
                 var error = string.Join("; ", results.Select(r => r.ErrorMessage));
                 throw new ArgumentException(error);
             }
         }
 
-        private static User Clone(User user)
+        private static User Clone(User u)
         {
             return new User
             {
-                Id = user.Id,
-                FirstName = user.FirstName,
-                LastName = user.LastName,
-                PolicyNumber = user.PolicyNumber,
-                Email = user.Email,
-                PolicyType = user.PolicyType,
-                PolicyName = user.PolicyName,
-                PhoneNumber = user.PhoneNumber,
-                Address = user.Address,
-                City = user.City,
-                State = user.State,
-                PostalCode = user.PostalCode,
-                Country = user.Country,
-                DateOfBirth = user.DateOfBirth,
-                CreatedAt = user.CreatedAt,
-                UpdatedAt = user.UpdatedAt,
-                OwnerSessionId = user.OwnerSessionId
+                Id = u.Id,
+                FirstName = u.FirstName,
+                LastName = u.LastName,
+                Email = u.Email,
+                PasswordHash = u.PasswordHash,
+                RoleId = u.RoleId,
+                CreatedAt = u.CreatedAt,
+                UpdatedAt = u.UpdatedAt,
+                OwnerSessionId = u.OwnerSessionId
             };
         }
     }

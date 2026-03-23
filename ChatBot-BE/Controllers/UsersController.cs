@@ -1,7 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using System.Linq;
 using ChatBot_BE.Services;
 using ChatBot_BE.Dto;
 using ChatBot_BE.Model;
@@ -15,115 +12,30 @@ namespace ChatBot_BE.Controllers
     {
         private readonly IUserStore _users;
         private readonly AppDbContext _db;
-        private readonly IPolicyService _policyService;
 
-        public UsersController(IUserStore users, AppDbContext db, IPolicyService policyService)
+        public UsersController(IUserStore users, AppDbContext db)
         {
             _users = users;
             _db = db;
-            _policyService = policyService;
         }
 
-        /// <summary>
-        /// Generates a new unique policy number.
-        /// </summary>
-        [HttpGet("generate-policy-number")]
-        public ActionResult<ApiResponse<string>> GeneratePolicyNumber()
-        {
-            var number = "POL-" + Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper();
-            return Ok(new ApiResponse<string> { Success = true, Data = number });
-        }
-
-        /// <summary>
-        /// Gets all users currently in the system.
-        /// </summary>
         [HttpGet]
         public async Task<ActionResult<ApiResponse<List<UserResponse>>>> GetAll()
         {
             var users = await _users.GetAllAsync();
-            var responses = new List<UserResponse>();
-            foreach (var user in users)
-            {
-                responses.Add(await ToResponseAsync(user));
-            }
+            var responses = users.Select(u => ToResponse(u)).ToList();
 
-            return Ok(new ApiResponse<List<UserResponse>>
-            {
-                Success = true,
-                Data = responses
-            });
+            return Ok(new ApiResponse<List<UserResponse>> { Success = true, Data = responses });
         }
 
-        /// <summary>
-        /// Gets a paged list of users.
-        /// </summary>
-        [HttpGet("list")]
-        public async Task<ActionResult<ApiResponse<PagedResponse<UserResponse>>>> GetList(
-            [FromQuery] int pageNumber = 1,
-            [FromQuery] int pageSize = 10)
-        {
-            // Ensure page size is within reasonable bounds
-            pageSize = Math.Max(1, Math.Min(pageSize, 100));
-            pageNumber = Math.Max(1, pageNumber);
-
-            var (users, totalCount) = await _users.GetPagedAsync(pageNumber, pageSize);
-            var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
-
-            var items = new List<UserResponse>();
-            foreach (var user in users)
-            {
-                items.Add(await ToResponseAsync(user));
-            }
-
-            var pagedResponse = new PagedResponse<UserResponse>
-            {
-                Items = items,
-                PageNumber = pageNumber,
-                PageSize = pageSize,
-                TotalCount = totalCount,
-                TotalPages = totalPages
-            };
-
-            return Ok(new ApiResponse<PagedResponse<UserResponse>>
-            {
-                Success = true,
-                Data = pagedResponse
-            });
-        }
-
-        /// <summary>
-        /// Gets a specific user by their ID.
-        /// </summary>
         [HttpGet("{id}")]
         public async Task<ActionResult<ApiResponse<UserResponse>>> Get(int id)
         {
             var user = await _users.GetAsync(id);
             if (user == null) return NotFound(new ApiResponse<UserResponse> { Success = false, Error = "Not found." });
-            return Ok(new ApiResponse<UserResponse>
-            {
-                Success = true,
-                Data = await ToResponseAsync(user)
-            });
+            return Ok(new ApiResponse<UserResponse> { Success = true, Data = ToResponse(user) });
         }
 
-        /// <summary>
-        /// Gets a user by their policy number.
-        /// </summary>
-        [HttpGet("by-policy/{policyNumber}")]
-        public async Task<ActionResult<ApiResponse<UserResponse>>> GetByPolicyNumber(string policyNumber)
-        {
-            var user = await _users.GetByPolicyNumberAsync(policyNumber);
-            if (user == null) return NotFound(new ApiResponse<UserResponse> { Success = false, Error = "Not found." });
-            return Ok(new ApiResponse<UserResponse>
-            {
-                Success = true,
-                Data = await ToResponseAsync(user)
-            });
-        }
-
-        /// <summary>
-        /// Creates a new user policy record.
-        /// </summary>
         [HttpPost]
         public async Task<ActionResult<ApiResponse<UserResponse>>> Create([FromBody] UserCreateRequest request)
         {
@@ -133,46 +45,26 @@ namespace ChatBot_BE.Controllers
                 {
                     FirstName = request.FirstName,
                     LastName = request.LastName,
-                    PolicyNumber = request.PolicyNumber,
                     Email = request.Email,
-                    PolicyType = request.PolicyType,
-                    PolicyName = request.PolicyName,
-                    PhoneNumber = request.PhoneNumber,
-                    Address = request.Address,
-                    City = request.City,
-                    State = request.State,
-                    PostalCode = request.PostalCode,
-                    Country = request.Country,
-                    DateOfBirth = request.DateOfBirth,
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+                    RoleId = request.RoleId,
                     OwnerSessionId = ""
                 });
 
-                return CreatedAtAction(
-                    nameof(GetByPolicyNumber),
-                    new { policyNumber = created.PolicyNumber },
-                    new ApiResponse<UserResponse> { Success = true, Data = await ToResponseAsync(created) });
+                return CreatedAtAction(nameof(Get), new { id = created.Id }, new ApiResponse<UserResponse> { Success = true, Data = ToResponse(created) });
             }
-            catch (ArgumentException ex)
+            catch (Exception ex)
             {
                 return BadRequest(new ApiResponse<UserResponse> { Success = false, Error = ex.Message });
             }
-            catch (InvalidOperationException ex)
-            {
-                return Conflict(new ApiResponse<UserResponse> { Success = false, Error = ex.Message });
-            }
         }
 
-        /// <summary>
-        /// Updates an existing user policy record.
-        /// </summary>
         [HttpPut("{id}")]
         public async Task<ActionResult<ApiResponse<object>>> Update(int id, [FromBody] UserUpdateRequest request)
         {
             var existing = await _users.GetAsync(id);
             if (existing != null && existing.OwnerSessionId == "SEEDED_RECORD")
-            {
-                return BadRequest(new ApiResponse<object> { Success = false, Error = "Cannot modify default seeded records." });
-            }
+                return BadRequest(new ApiResponse<object> { Success = false, Error = "Cannot modify seeded users." });
 
             try
             {
@@ -180,93 +72,68 @@ namespace ChatBot_BE.Controllers
                 {
                     FirstName = request.FirstName,
                     LastName = request.LastName,
-                    PolicyNumber = request.PolicyNumber,
                     Email = request.Email,
-                    PolicyType = request.PolicyType,
-                    PolicyName = request.PolicyName,
-                    PhoneNumber = request.PhoneNumber,
-                    Address = request.Address,
-                    City = request.City,
-                    State = request.State,
-                    PostalCode = request.PostalCode,
-                    Country = request.Country,
-                    DateOfBirth = request.DateOfBirth,
-                    UpdatedAt = DateTime.UtcNow
+                    RoleId = request.RoleId,
+                    PasswordHash = request.Password != null ? BCrypt.Net.BCrypt.HashPassword(request.Password) : null
                 });
                 return Ok(new ApiResponse<object> { Success = ok });
             }
-            catch (ArgumentException ex)
+            catch (Exception ex)
             {
                 return BadRequest(new ApiResponse<object> { Success = false, Error = ex.Message });
             }
-            catch (InvalidOperationException ex)
-            {
-                return Conflict(new ApiResponse<object> { Success = false, Error = ex.Message });
-            }
         }
 
-        /// <summary>
-        /// Deletes a user by their ID.
-        /// </summary>
         [HttpDelete("{id}")]
         public async Task<ActionResult<ApiResponse<object>>> Delete(int id)
         {
             var existing = await _users.GetAsync(id);
             if (existing != null && existing.OwnerSessionId == "SEEDED_RECORD")
-            {
-                return BadRequest(new ApiResponse<object> { Success = false, Error = "Cannot delete default seeded records." });
-            }
+                return BadRequest(new ApiResponse<object> { Success = false, Error = "Cannot delete seeded users." });
 
             var ok = await _users.DeleteAsync(id);
-            return ok
-                ? Ok(new ApiResponse<object> { Success = true })
-                : NotFound(new ApiResponse<object> { Success = false, Error = "Not found." });
+            return Ok(new ApiResponse<object> { Success = ok });
         }
 
-        /// <summary>
-        /// Deletes a user by their policy number.
-        /// </summary>
-        [HttpDelete("by-policy/{policyNumber}")]
-        public async Task<ActionResult<ApiResponse<object>>> DeleteByPolicyNumber(string policyNumber)
+        [HttpGet("all-users")]
+        public async Task<ActionResult<ApiResponse<List<UserResponse>>>> GetUsersExcludingAdmins()
         {
-            var existing = await _users.GetByPolicyNumberAsync(policyNumber);
-            if (existing != null && existing.OwnerSessionId == "SEEDED_RECORD")
-            {
-                return BadRequest(new ApiResponse<object> { Success = false, Error = "Cannot delete default seeded records." });
-            }
-
-            var ok = await _users.DeleteByPolicyNumberAsync(policyNumber);
-            return ok
-                ? Ok(new ApiResponse<object> { Success = true })
-                : NotFound(new ApiResponse<object> { Success = false, Error = "Not found." });
+            var users = await _users.GetAllAsync();
+            // Assuming "Admin" role is to be excluded.
+            var filtered = users.Where(u => u.Role?.RoleName != "Admin").Select(u => ToResponse(u)).ToList();
+            return Ok(new ApiResponse<List<UserResponse>> { Success = true, Data = filtered });
         }
 
-        private async Task<UserResponse> ToResponseAsync(User user)
+        [HttpPost("{id}/change-password")]
+        public async Task<ActionResult<ApiResponse<object>>> ChangePassword(int id, [FromBody] ChangePasswordRequest request)
         {
-            var (policyTypeId, policyTypeName) = await _policyService.ResolvePolicyTypeAsync(user.PolicyType);
-            var (policyNameId, policyNameName) = await _policyService.ResolvePolicyNameAsync(user.PolicyName);
+            if (string.IsNullOrWhiteSpace(request.NewPassword))
+                return BadRequest(new ApiResponse<object> { Success = false, Error = "Password is required." });
 
+            var existing = await _users.GetAsync(id);
+            if (existing == null) return NotFound();
+
+            var newHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+            existing.PasswordHash = newHash;
+            existing.UpdatedAt = DateTime.UtcNow;
+
+            var ok = await _users.UpdateAsync(id, existing);
+            return Ok(new ApiResponse<object> { Success = ok });
+        }
+
+        private UserResponse ToResponse(User u)
+        {
             return new UserResponse
             {
-                Id = user.Id,
-                FirstName = user.FirstName,
-                LastName = user.LastName,
-                PolicyNumber = user.PolicyNumber,
-                Email = user.Email,
-                PolicyTypeId = policyTypeId,
-                PolicyType = policyTypeName,
-                PolicyNameId = policyNameId,
-                PolicyName = policyNameName,
-                PhoneNumber = user.PhoneNumber,
-                Address = user.Address,
-                City = user.City,
-                State = user.State,
-                PostalCode = user.PostalCode,
-                Country = user.Country,
-                DateOfBirth = user.DateOfBirth,
-                IsDefault = user.OwnerSessionId == "SEEDED_RECORD",
-                CreatedAt = user.CreatedAt,
-                UpdatedAt = user.UpdatedAt
+                Id = u.Id,
+                FirstName = u.FirstName,
+                LastName = u.LastName,
+                Email = u.Email,
+                RoleId = u.RoleId,
+                RoleName = u.Role?.RoleName,
+                CreatedAt = u.CreatedAt,
+                UpdatedAt = u.UpdatedAt,
+                IsDefault = u.OwnerSessionId == "SEEDED_RECORD"
             };
         }
     }

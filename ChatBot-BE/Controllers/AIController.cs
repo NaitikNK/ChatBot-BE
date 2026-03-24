@@ -113,11 +113,12 @@ namespace ChatBot_BE.Controllers
             }
             catch (Exception ex)
             {
-                // Detailed logging for the 500 error
+                // Temporarily expose full error to find the root cause on Render
+                // We will revert this to 'Generic Error' once debugging is complete
                 return StatusCode(500, new ApiResponse<object>
                 {
                     Success = false,
-                    Error = env.IsDevelopment() ? ex.ToString() : "An internal server error occurred while processing your chat request."
+                    Error = ex.ToString() 
                 });
             }
         }

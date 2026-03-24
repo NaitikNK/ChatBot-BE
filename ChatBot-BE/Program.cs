@@ -251,6 +251,11 @@ try
         app.Logger.LogWarning("Could not parse connection string for diagnostic logging.");
     }
 
+    // Step 0: Ensure all tables exist (Render fail-safe)
+    // Reads table definitions dynamically from AppDbContext — no hardcoded names
+    await TableSeeder.EnsureTablesAsync(context);
+    app.Logger.LogInformation("Table existence verified.");
+
     // Step 1: Migrate DB (Creates tables if they don't exist based on Migrations)
     await context.Database.MigrateAsync();
     app.Logger.LogInformation("Database migrated successfully.");

@@ -47,9 +47,13 @@ namespace ChatBot_BE.Controllers
             return Ok(new ApiResponse<List<DropdownOptionDto>> { Success = true, Data = types });
         }
 
-        [HttpGet("names/{typeId}")]
-        public async Task<ActionResult<ApiResponse<List<DropdownOptionDto>>>> GetPolicyNames(string typeId)
+        [HttpGet("names")]
+        public async Task<ActionResult<ApiResponse<List<DropdownOptionDto>>>> GetPolicyNames([FromQuery] string? typeId)
         {
+            if (string.IsNullOrEmpty(typeId))
+            {
+                return Ok(new ApiResponse<List<DropdownOptionDto>> { Success = true, Data = new List<DropdownOptionDto>() });
+            }
             var names = await _policyService.GetPolicyNamesByTypeAsync(typeId);
             return Ok(new ApiResponse<List<DropdownOptionDto>> { Success = true, Data = names });
         }

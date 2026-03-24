@@ -192,7 +192,6 @@ var openAiEndpoint = builder.Configuration["OpenAI:Endpoint"]
     ?? throw new InvalidOperationException("Missing OpenAI:Endpoint in configuration.");
 
 builder.Services.AddScoped<UserManagementPlugin>();
-builder.Services.AddScoped<KnowledgeBasePlugin>();
 builder.Services.AddScoped(sp =>
 {
     var kernelBuilder = Kernel.CreateBuilder();

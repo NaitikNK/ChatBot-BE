@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using ChatBot_BE.Services;
 using ChatBot_BE.Dto;
 using ChatBot_BE.Model;
@@ -19,18 +20,49 @@ namespace ChatBot_BE.Controllers
             _db = db;
         }
 
+        /// <summary>
+        /// Extracts the current user from the X-User-Id header and checks if they are an admin.
+        /// </summary>
+        private async Task<(User? user, bool isAdmin)> GetCurrentUserAsync()
+        {
+            if (!Request.Headers.TryGetValue("X-User-Id", out var val) || !int.TryParse(val, out var id))
+                return (null, false);
+            var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == id);
+            return (user, user?.Role?.RoleName == "Admin");
+        }
+
+        /// <summary>
+        /// Admin only — returns all users.
+        /// </summary>
         [HttpGet]
         public async Task<ActionResult<ApiResponse<List<UserResponse>>>> GetAll()
         {
+            var (currentUser, isAdmin) = await GetCurrentUserAsync();
+            if (currentUser == null)
+                return Unauthorized(new ApiResponse<List<UserResponse>> { Success = false, Error = "User context missing. Send X-User-Id header." });
+
+            if (!isAdmin)
+                return StatusCode(403, new ApiResponse<List<UserResponse>> { Success = false, Error = "Only admins can view all users." });
+
             var users = await _users.GetAllAsync();
             var responses = users.Select(u => ToResponse(u)).ToList();
 
             return Ok(new ApiResponse<List<UserResponse>> { Success = true, Data = responses });
         }
 
+        /// <summary>
+        /// Admin → any user. User → only own profile.
+        /// </summary>
         [HttpGet("{id}")]
         public async Task<ActionResult<ApiResponse<UserResponse>>> Get(int id)
         {
+            var (currentUser, isAdmin) = await GetCurrentUserAsync();
+            if (currentUser == null)
+                return Unauthorized(new ApiResponse<UserResponse> { Success = false, Error = "User context missing. Send X-User-Id header." });
+
+            if (!isAdmin && currentUser.Id != id)
+                return StatusCode(403, new ApiResponse<UserResponse> { Success = false, Error = "You can only view your own profile." });
+
             var user = await _users.GetAsync(id);
             if (user == null) return NotFound(new ApiResponse<UserResponse> { Success = false, Error = "Not found." });
             return Ok(new ApiResponse<UserResponse> { Success = true, Data = ToResponse(user) });
@@ -59,11 +91,24 @@ namespace ChatBot_BE.Controllers
             }
         }
 
+        /// <summary>
+        /// Admin → any user. User → only own profile.
+        /// </summary>
         [HttpPut("{id}")]
         public async Task<ActionResult<ApiResponse<object>>> Update(int id, [FromBody] UserUpdateRequest request)
         {
+            var (currentUser, isAdmin) = await GetCurrentUserAsync();
+            if (currentUser == null)
+                return Unauthorized(new ApiResponse<object> { Success = false, Error = "User context missing. Send X-User-Id header." });
+
+            if (!isAdmin && currentUser.Id != id)
+                return StatusCode(403, new ApiResponse<object> { Success = false, Error = "You can only update your own profile." });
+
             var existing = await _users.GetAsync(id);
-            if (existing != null && existing.OwnerSessionId == "SEEDED_RECORD")
+            if (existing == null)
+                return NotFound(new ApiResponse<object> { Success = false, Error = "Not found." });
+
+            if (existing.OwnerSessionId == "SEEDED_RECORD" && !isAdmin)
                 return BadRequest(new ApiResponse<object> { Success = false, Error = "Cannot modify seeded users." });
 
             try
@@ -84,22 +129,37 @@ namespace ChatBot_BE.Controllers
             }
         }
 
+        /// <summary>
+        /// Admin → any user. User → only own profile.
+        /// </summary>
         [HttpDelete("{id}")]
         public async Task<ActionResult<ApiResponse<object>>> Delete(int id)
         {
+            var (currentUser, isAdmin) = await GetCurrentUserAsync();
+            if (currentUser == null)
+                return Unauthorized(new ApiResponse<object> { Success = false, Error = "User context missing. Send X-User-Id header." });
+
+            if (!isAdmin && currentUser.Id != id)
+                return StatusCode(403, new ApiResponse<object> { Success = false, Error = "You can only delete your own profile." });
+
             var existing = await _users.GetAsync(id);
-            if (existing != null && existing.OwnerSessionId == "SEEDED_RECORD")
+            if (existing == null)
+                return NotFound(new ApiResponse<object> { Success = false, Error = "Not found." });
+
+            if (existing.OwnerSessionId == "SEEDED_RECORD" && !isAdmin)
                 return BadRequest(new ApiResponse<object> { Success = false, Error = "Cannot delete seeded users." });
 
             var ok = await _users.DeleteAsync(id);
             return Ok(new ApiResponse<object> { Success = ok });
         }
 
+        /// <summary>
+        /// Returns all users excluding admins. No auth required.
+        /// </summary>
         [HttpGet("all-users")]
         public async Task<ActionResult<ApiResponse<List<UserResponse>>>> GetUsersExcludingAdmins()
         {
             var users = await _users.GetAllAsync();
-            // Assuming "Admin" role is to be excluded.
             var filtered = users.Where(u => u.Role?.RoleName != "Admin").Select(u => ToResponse(u)).ToList();
             return Ok(new ApiResponse<List<UserResponse>> { Success = true, Data = filtered });
         }
@@ -107,6 +167,13 @@ namespace ChatBot_BE.Controllers
         [HttpPost("{id}/change-password")]
         public async Task<ActionResult<ApiResponse<object>>> ChangePassword(int id, [FromBody] ChangePasswordRequest request)
         {
+            var (currentUser, isAdmin) = await GetCurrentUserAsync();
+            if (currentUser == null)
+                return Unauthorized(new ApiResponse<object> { Success = false, Error = "User context missing. Send X-User-Id header." });
+
+            if (!isAdmin && currentUser.Id != id)
+                return StatusCode(403, new ApiResponse<object> { Success = false, Error = "You can only change your own password." });
+
             if (string.IsNullOrWhiteSpace(request.NewPassword))
                 return BadRequest(new ApiResponse<object> { Success = false, Error = "Password is required." });
 

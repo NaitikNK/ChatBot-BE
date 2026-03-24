@@ -22,10 +22,31 @@ namespace ChatBot_BE.Services
             return _context.Policies.OrderByDescending(p => p.CreatedAt).ToListAsync();
         }
 
+        public Task<List<Policy>> GetAllByUserAsync(int userId)
+        {
+            return _context.Policies
+                .Where(p => p.UserId == userId)
+                .OrderByDescending(p => p.CreatedAt)
+                .ToListAsync();
+        }
+
         public async Task<(List<Policy> Policies, int TotalCount)> GetPagedAsync(int pageNumber, int pageSize)
         {
             var totalCount = await _context.Policies.CountAsync();
             var policies = await _context.Policies
+                .OrderByDescending(p => p.CreatedAt)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (policies, totalCount);
+        }
+
+        public async Task<(List<Policy> Policies, int TotalCount)> GetPagedByUserAsync(int userId, int pageNumber, int pageSize)
+        {
+            var query = _context.Policies.Where(p => p.UserId == userId);
+            var totalCount = await query.CountAsync();
+            var policies = await query
                 .OrderByDescending(p => p.CreatedAt)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)

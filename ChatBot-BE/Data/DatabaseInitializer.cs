@@ -10,19 +10,26 @@ namespace ChatBot_BE.Data
     /// </summary>
     public static class DatabaseInitializer
     {
-            // Step 1: Apply all pending migrations (creates tables + schema changes)
+        public static async Task InitializeAsync(
+            AppDbContext context,
+            IUserStore userStore,
+            IPolicyStore policyStore,
+            IKnowledgeBaseService knowledgeBase,
+            IWebHostEnvironment environment)
+        {
+            // Step 1: Apply all pending migrations
             Log.Information("Checking for database migrations...");
             var assembly = typeof(AppDbContext).Assembly;
             var assemblyName = assembly.GetName().Name;
-            Log.Information("EF Core is searching for migrations in assembly: {Assembly}", assemblyName);
-            
-            // DEBUG: Manually search for migration classes via reflection
+            Log.Information("Migrations assembly: {Assembly}", assemblyName);
+
+            // DEBUG: Scan for migration classes via reflection
             try
             {
                 var migrationTypes = assembly.GetTypes()
                     .Where(t => t.IsSubclassOf(typeof(Microsoft.EntityFrameworkCore.Migrations.Migration)))
                     .ToList();
-                Log.Information("Reflection found {Count} migration classes in assembly: {Classes}", 
+                Log.Information("Reflection found {Count} migration classes: {Classes}",
                     migrationTypes.Count, string.Join(", ", migrationTypes.Select(t => t.Name)));
             }
             catch (Exception ex)
@@ -32,9 +39,9 @@ namespace ChatBot_BE.Data
 
             var pendingMigrations = (await context.Database.GetPendingMigrationsAsync()).ToList();
             var appliedMigrations = (await context.Database.GetAppliedMigrationsAsync()).ToList();
-            
-            Log.Information("Migrations Found - Applied: {Applied}, Pending: {Pending}", appliedMigrations.Count, pendingMigrations.Count);
-            
+
+            Log.Information("Migrations - Applied: {Applied}, Pending: {Pending}", appliedMigrations.Count, pendingMigrations.Count);
+
             if (pendingMigrations.Any())
             {
                 Log.Information("Applying {Count} migrations...", pendingMigrations.Count);
@@ -43,29 +50,23 @@ namespace ChatBot_BE.Data
             }
             else if (appliedMigrations.Count == 0 && pendingMigrations.Count == 0)
             {
-                Log.Error("❌ CRITICAL: EF Core found 0 migrations in assembly '{Assembly}'.", assemblyName);
-                Log.Error("This is likely a build/deployment issue where Migrations folder is not being compiled.");
+                Log.Error("CRITICAL: EF Core found 0 migrations in assembly '{Assembly}'.", assemblyName);
+                Log.Error("This is likely a build/deployment issue.");
             }
             else
             {
-                Log.Information("No pending migrations. Database is up to date according to history.");
+                Log.Information("No pending migrations. Database is up to date.");
             }
 
-            // [CRITICAL CHECK] Verify core tables actually exist
-            // Sometimes __EFMigrationsHistory is out of sync with actual tables on Render
+            // Step 1.5: Verify core tables actually exist
             Log.Information("Verifying critical tables exist...");
             var tableExists = await DoesTableExistAsync(context, "PolicyTypes");
             if (!tableExists)
             {
-                Log.Warning("⚠️ Table 'PolicyTypes' is missing despite Migrations history.");
-                Log.Warning("Attempting emergency recovery using EnsureCreatedAsync...");
-                
-                // EnsureCreated creates the database and all tables if they don't exist
-                // It will bypass __EFMigrationsHistory if that table is corrupted
+                Log.Warning("Table 'PolicyTypes' is missing. Attempting recovery with EnsureCreatedAsync...");
                 await context.Database.EnsureCreatedAsync();
                 Log.Information("Recovery EnsureCreated completed.");
-                
-                // Final check
+
                 if (!await DoesTableExistAsync(context, "PolicyTypes"))
                 {
                     throw new InvalidOperationException("FATAL: Database schema could not be created. Relation 'PolicyTypes' still missing.");
@@ -101,12 +102,12 @@ namespace ChatBot_BE.Data
             {
                 using var command = context.Database.GetDbConnection().CreateCommand();
                 command.CommandText = $"SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = '{tableName}'";
-                
+
                 if (context.Database.GetDbConnection().State != System.Data.ConnectionState.Open)
                 {
                     await context.Database.OpenConnectionAsync();
                 }
-                
+
                 var count = (long?)await command.ExecuteScalarAsync();
                 return count > 0;
             }

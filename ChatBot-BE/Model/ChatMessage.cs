@@ -17,8 +17,16 @@ namespace ChatBot_BE.Model
         [ForeignKey("UserId")]
         public User? User { get; set; }
 
+        /// <summary>
+        /// The user's RoleId (e.g., 1=Admin, 2=User) at the time of the message.
+        /// </summary>
+        public int? RoleId { get; set; }
+
+        /// <summary>
+        /// The message author type: System, User, or Assistant.
+        /// </summary>
         [Required]
-        public string Role { get; set; } = string.Empty; // System, User, Assistant
+        public string AuthorType { get; set; } = string.Empty;
 
         [Required]
         public string Content { get; set; } = string.Empty;

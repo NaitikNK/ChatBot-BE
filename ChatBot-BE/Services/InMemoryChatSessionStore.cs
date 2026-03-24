@@ -28,7 +28,7 @@ namespace ChatBot_BE.Services
             _cache.Remove(conversationId);
         }
 
-        public Task SaveMessageAsync(string conversationId, string role, string content, int? userId)
+        public Task SaveMessageAsync(string conversationId, string authorType, string content, int? userId, int? roleId)
         {
             return Task.CompletedTask;
         }

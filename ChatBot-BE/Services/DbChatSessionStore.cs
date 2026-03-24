@@ -41,7 +41,7 @@ namespace ChatBot_BE.Services
                 session.History = new ChatHistory();
                 foreach (var msg in messages)
                 {
-                    var role = msg.Role.ToLower() switch
+                    var role = msg.AuthorType.ToLower() switch
                     {
                         "system" => AuthorRole.System,
                         "user" => AuthorRole.User,
@@ -65,14 +65,15 @@ namespace ChatBot_BE.Services
             // Optionally we could mark messages as deleted in DB, but usually Reset just clears session state
         }
 
-        public async Task SaveMessageAsync(string conversationId, string role, string content, int? userId)
+        public async Task SaveMessageAsync(string conversationId, string authorType, string content, int? userId, int? roleId)
         {
             var message = new ChatMessage
             {
                 ConversationId = conversationId,
-                Role = role,
+                AuthorType = authorType,
                 Content = content,
                 UserId = userId,
+                RoleId = roleId,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -87,7 +88,7 @@ namespace ChatBot_BE.Services
             var cacheKey = $"chat_session_{conversationId}";
             if (_cache.TryGetValue(cacheKey, out ChatSessionState? session) && session != null)
             {
-                session.History.AddMessage(role.ToLower() switch
+                session.History.AddMessage(authorType.ToLower() switch
                 {
                     "system" => AuthorRole.System,
                     "user" => AuthorRole.User,

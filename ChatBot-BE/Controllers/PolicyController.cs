@@ -183,7 +183,7 @@ namespace ChatBot_BE.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new ApiResponse<PolicyResponse> { Success = false, Error = ex.Message });
+                return StatusCode(500, new ApiResponse<PolicyResponse> { Success = false, Error = "An error occurred while creating the policy." });
             }
         }
 
@@ -223,13 +223,14 @@ namespace ChatBot_BE.Controllers
                     State = request.State,
                     PostalCode = request.PostalCode,
                     Country = request.Country,
-                    DateOfBirth = request.DateOfBirth
+                    DateOfBirth = request.DateOfBirth,
+                    UserId = isAdmin ? (request.UserId ?? existing.UserId) : existing.UserId
                 });
                 return Ok(new ApiResponse<object> { Success = ok });
             }
             catch (Exception ex)
             {
-                return BadRequest(new ApiResponse<object> { Success = false, Error = ex.Message });
+                return StatusCode(500, new ApiResponse<object> { Success = false, Error = "An error occurred while updating the policy." });
             }
         }
 

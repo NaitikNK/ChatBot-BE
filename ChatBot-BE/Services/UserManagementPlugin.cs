@@ -10,6 +10,7 @@ namespace ChatBot_BE.Services
         private readonly IPolicyStore _policies;
         private readonly ILogger<UserManagementPlugin> _logger;
         private readonly IConversationContext _context;
+        private const string SeededRecordId = "SEEDED_RECORD";
 
         public UserManagementPlugin(IPolicyStore policies, ILogger<UserManagementPlugin> logger, IConversationContext context)
         {
@@ -50,7 +51,8 @@ namespace ChatBot_BE.Services
                     PolicyType = policyType,
                     PolicyName = policyName,
                     PhoneNumber = phoneNumber,
-                    OwnerSessionId = _context.ConversationId
+                    OwnerSessionId = _context.ConversationId,
+                    UserId = _context.UserId // Assign the current user's ID
                 });
 
                 return $"TOOL RESULT: Policy record created successfully! Policy Number: {policyNumber}";
@@ -77,9 +79,9 @@ namespace ChatBot_BE.Services
                 return $"❌ No record found for policy number '{policyNumber}'.";
             }
 
-            if (!string.IsNullOrEmpty(policy.OwnerSessionId) && 
-                policy.OwnerSessionId != "SEEDED_RECORD" &&
-                !string.Equals(policy.OwnerSessionId, _context.ConversationId, StringComparison.OrdinalIgnoreCase))
+            // Admin can view any policy; regular users can only view their own
+            var isAdmin = _context.Role == "Admin";
+            if (!isAdmin && policy.UserId != _context.UserId)
             {
                 return $"⛔ Access Denied. You are not authorized to view this record.";
             }
@@ -89,11 +91,17 @@ namespace ChatBot_BE.Services
             response += $"- Policy Number: {policy.PolicyNumber}\n";
             response += $"- Policy Type: {policy.PolicyType}\n";
             response += $"- Email: {policy.Email}";
+
+            if (policy.OwnerSessionId == SeededRecordId)
+            {
+                response += "\n- STATUS: [System Default - Read Only]";
+            }
+
             return response;
         }
 
         [KernelFunction("list_all_users")]
-        [Description("List all user policy records in the system")]
+        [Description("List all user policy records accessible to the current user")]
         public async Task<string> ListAllUsers()
         {
             if (!_context.IsAuthenticated)
@@ -101,23 +109,33 @@ namespace ChatBot_BE.Services
                 return "[ERROR: AUTHENTICATION_REQUIRED]";
             }
 
-            var policies = await _policies.GetAllAsync();
-            var sessionPolicies = policies
-                .Where(p => string.IsNullOrEmpty(p.OwnerSessionId) || 
-                            p.OwnerSessionId == "SEEDED_RECORD" ||
-                            string.Equals(p.OwnerSessionId, _context.ConversationId, StringComparison.OrdinalIgnoreCase))
-                .ToList();
+            var isAdmin = _context.Role == "Admin";
+            List<Policy> policies;
 
-            if (sessionPolicies.Count == 0)
+            if (isAdmin)
             {
-                return "📭 No policy records found for your session.";
+                // Admin can see ALL policies
+                policies = await _policies.GetAllAsync();
+            }
+            else
+            {
+                // Regular users only see their own policies
+                policies = _context.UserId.HasValue
+                    ? await _policies.GetAllByUserAsync(_context.UserId.Value)
+                    : new List<Policy>();
+            }
+
+            if (policies.Count == 0)
+            {
+                return "📭 No policy records found.";
             }
 
             var sb = new System.Text.StringBuilder();
-            sb.AppendLine($"TOOL RESULT: Found {sessionPolicies.Count} policy record(s):");
-            foreach (var p in sessionPolicies)
+            sb.AppendLine($"TOOL RESULT: Found {policies.Count} policy record(s):");
+            foreach (var p in policies)
             {
-                sb.AppendLine($"- {p.FirstName} {p.LastName} (Policy: {p.PolicyNumber})");
+                var label = p.OwnerSessionId == SeededRecordId ? " (System Default - Read Only)" : "";
+                sb.AppendLine($"- {p.FirstName} {p.LastName} (Policy: {p.PolicyNumber}){label}");
             }
 
             return sb.ToString().TrimEnd();
@@ -138,6 +156,19 @@ namespace ChatBot_BE.Services
 
             var policy = await _policies.GetByPolicyNumberAsync(policyNumber);
             if (policy == null) return $"❌ No record found.";
+
+            // Admin can update any policy; regular users can only update their own
+            var isAdmin = _context.Role == "Admin";
+            if (!isAdmin && policy.UserId != _context.UserId)
+            {
+                return "⛔ Access Denied. You are not authorized to update this record.";
+            }
+
+            // [NEW] Block updates to system-default records
+            if (policy.OwnerSessionId == SeededRecordId)
+            {
+                return "❌ Error: System-default records cannot be modified.";
+            }
 
             if (firstName != null) policy.FirstName = firstName;
             if (lastName != null) policy.LastName = lastName;
@@ -166,6 +197,19 @@ namespace ChatBot_BE.Services
 
             var policy = await _policies.GetByPolicyNumberAsync(policyNumber);
             if (policy == null) return $"❌ No record found.";
+
+            // Admin can delete any policy; regular users can only delete their own
+            var isAdmin = _context.Role == "Admin";
+            if (!isAdmin && policy.UserId != _context.UserId)
+            {
+                return "⛔ Access Denied. You are not authorized to delete this record.";
+            }
+
+            // [NEW] Block deletion of system-default records
+            if (policy.OwnerSessionId == SeededRecordId)
+            {
+                return "❌ Error: System-default records cannot be deleted.";
+            }
 
             var ok = await _policies.DeleteAsync(policy.Id);
             return ok ? $"TOOL RESULT: Record deleted successfully." : "❌ Failed to delete record.";

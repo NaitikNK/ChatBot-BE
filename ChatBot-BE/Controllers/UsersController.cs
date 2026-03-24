@@ -71,6 +71,10 @@ namespace ChatBot_BE.Controllers
         [HttpPost]
         public async Task<ActionResult<ApiResponse<UserResponse>>> Create([FromBody] UserCreateRequest request)
         {
+            var (currentUser, isAdmin) = await GetCurrentUserAsync();
+            if (currentUser == null || !isAdmin)
+                return StatusCode(403, new ApiResponse<UserResponse> { Success = false, Error = "Only admins can create users." });
+
             try
             {
                 var created = await _users.AddAsync(new User

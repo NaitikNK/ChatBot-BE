@@ -29,5 +29,6 @@ namespace ChatBot_BE.Dto
         public string? PostalCode { get; set; }
         public string? Country { get; set; }
         public DateTime? DateOfBirth { get; set; }
+        public int? UserId { get; set; }
     }
 }

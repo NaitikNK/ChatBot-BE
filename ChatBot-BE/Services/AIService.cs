@@ -68,13 +68,14 @@ namespace ChatBot_BE.Services
             // Persist system prompt if it was a new session (optional but helps)
             if (session.History.Count == 1)
             {
-                await _sessions.SaveMessageAsync(conversationId, "system", systemPrompt, null);
+                await _sessions.SaveMessageAsync(conversationId, "system", systemPrompt, null, null);
             }
 
             // Add and persist user message
             session.History.AddUserMessage(message);
             int? currentUserId = _context.UserId;
-            await _sessions.SaveMessageAsync(conversationId, "user", message, currentUserId);
+            int? currentRoleId = _context.RoleId;
+            await _sessions.SaveMessageAsync(conversationId, "user", message, currentUserId, currentRoleId);
 
             // Configure execution settings for Kimi (OpenAI API)
             var executionSettings = new OpenAIPromptExecutionSettings
@@ -99,7 +100,7 @@ namespace ChatBot_BE.Services
 
                 // Add and persist assistant response
                 session.History.AddAssistantMessage(answer);
-                await _sessions.SaveMessageAsync(conversationId, "assistant", answer, currentUserId);
+                await _sessions.SaveMessageAsync(conversationId, "assistant", answer, currentUserId, currentRoleId);
 
                 // Trim history to prevent token limit issues
                 session.TrimHistory();
@@ -131,43 +132,9 @@ namespace ChatBot_BE.Services
 
         public async Task<string> GetGreetingAsync()
         {
-            try
-            {
-                var history = new ChatHistory();
-                // Send a concise system instruction specifically for the greeting
-                history.AddSystemMessage(@"You are Allison, an Insurance specialist. Follow these greeting rules EXACTLY:
-1. Start with exactly: 'Hello! I'm Allison, your personal Insurance Agent.'
-2. State that you're here to help explore insurance offerings, manage records, and answer questions.
-3. End with: 'How can I assist you today?'
-4. Never mention being an AI assistant.");
-                
-                history.AddUserMessage("Please introduce yourself according to your greeting instructions.");
-
-                var executionSettings = new OpenAIPromptExecutionSettings
-                {
-                    Temperature = 0.5, 
-                    MaxTokens = 1000 // Increased to allow for 'thinking' tokens in Kimi models
-                };
-
-                var response = await _chatCompletion.GetChatMessageContentAsync(
-                    history,
-                    executionSettings,
-                    _kernel);
-
-                var content = response.Content?.Trim();
-                if (string.IsNullOrWhiteSpace(content))
-                {
-                    _logger.LogWarning("AI returned empty content for dynamic greeting.");
-                    return "Allison: [Dynamic Greeting Failed to Generate]";
-                }
-                
-                return content;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to generate dynamic greeting from OpenAI.");
-                return $"Allison: [Error generating dynamic greeting: {ex.Message}]";
-            }
+            // Returning a static greeting to ensure instantaneous response times,
+            // as the greeting rules are strict and constant.
+            return await Task.FromResult("Hello! I'm Allison, your personal Insurance Agent. I'm here to help you explore our insurance offerings, manage your records, and answer any questions you may have. How can I assist you today?");
         }
     }
 }

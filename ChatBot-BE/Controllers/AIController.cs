@@ -1,7 +1,9 @@
 using ChatBot_BE.Dto;
+using ChatBot_BE.Data;
 using ChatBot_BE.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -14,14 +16,15 @@ namespace ChatBot_BE.Controllers
     {
         private readonly IAIService _aiService;
         private readonly IInputValidator _inputValidator;
-
         private readonly IConversationContext _context;
+        private readonly AppDbContext _db;
 
-        public AIController(IAIService aiService, IInputValidator inputValidator, IConversationContext context)
+        public AIController(IAIService aiService, IInputValidator inputValidator, IConversationContext context, AppDbContext db)
         {
             _aiService = aiService;
             _inputValidator = inputValidator;
             _context = context;
+            _db = db;
         }
 
         /// <summary>
@@ -65,40 +68,34 @@ namespace ChatBot_BE.Controllers
                     request.Message = validationResult.CorrectedText;
                 }
 
-                const string cookieName = "conversationId";
-
-                var conversationId =
-                    string.IsNullOrWhiteSpace(request.ConversationId)
-                        ? (Request.Cookies.TryGetValue(cookieName, out var fromCookie) ? fromCookie : null)
-                        : request.ConversationId;
-
-                if (string.IsNullOrWhiteSpace(conversationId))
-                {
-                    var fingerprint = $"{HttpContext.Connection.RemoteIpAddress}|{Request.Headers.UserAgent}|{Request.Headers.Origin}";
-                    conversationId = ToShortHash(fingerprint);
-                }
-
-                request.ConversationId = conversationId;
-                Response.Cookies.Append(cookieName, conversationId, new CookieOptions
-                {
-                    HttpOnly = true,
-                    Secure = Request.IsHttps,
-                    SameSite = SameSiteMode.None,
-                    Path = "/",
-                    Expires = DateTimeOffset.UtcNow.AddDays(7)
-                });
-
-                // Read Auth headers
-                if (Request.Headers.TryGetValue("X-User-Id", out var userIdVal) && int.TryParse(userIdVal, out var userId))
+                // Read Auth headers FIRST (needed for user-specific conversationId)
+                int? userId = null;
+                if (Request.Headers.TryGetValue("X-User-Id", out var userIdVal) && int.TryParse(userIdVal, out var parsedUserId))
                 {
                     _context.IsAuthenticated = true;
-                    _context.UserId = userId;
+                    _context.UserId = parsedUserId;
+                    userId = parsedUserId;
+
+                    // Look up the user's RoleId from the database
+                    var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == parsedUserId);
+                    if (user != null)
+                    {
+                        _context.RoleId = user.RoleId;
+                    }
                 }
-                _context.ConversationId = conversationId; // Always use the actual session ID
                 if (Request.Headers.TryGetValue("X-User-Role", out var roleVal))
                 {
                     _context.Role = roleVal.ToString();
                 }
+
+                // Use provided conversationId for existing chats, or generate a new one for new chats
+                var conversationId = string.IsNullOrWhiteSpace(request.ConversationId)
+                    ? Guid.NewGuid().ToString("N")
+                    : request.ConversationId.Trim();
+
+                request.ConversationId = conversationId;
+
+                _context.ConversationId = conversationId;
 
                 var result = await _aiService.GetResponse(request);
                 return Ok(new ApiResponse<ChatReply> 
@@ -118,7 +115,7 @@ namespace ChatBot_BE.Controllers
                 return StatusCode(500, new ApiResponse<object>
                 {
                     Success = false,
-                    Error = ex.ToString() 
+                    Error = "An internal server error occurred while processing your chat request."
                 });
             }
         }

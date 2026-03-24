@@ -10,18 +10,26 @@ namespace ChatBot_BE.Data
     /// </summary>
     public static class DatabaseInitializer
     {
-        public static async Task InitializeAsync(
-            AppDbContext context,
-            IUserStore userStore,
-            IPolicyStore policyStore,
-            IKnowledgeBaseService knowledgeBase,
-            IWebHostEnvironment environment)
-        {
             // Step 1: Apply all pending migrations (creates tables + schema changes)
             Log.Information("Checking for database migrations...");
-            var assemblyName = typeof(AppDbContext).Assembly.GetName().Name;
+            var assembly = typeof(AppDbContext).Assembly;
+            var assemblyName = assembly.GetName().Name;
             Log.Information("EF Core is searching for migrations in assembly: {Assembly}", assemblyName);
             
+            // DEBUG: Manually search for migration classes via reflection
+            try
+            {
+                var migrationTypes = assembly.GetTypes()
+                    .Where(t => t.IsSubclassOf(typeof(Microsoft.EntityFrameworkCore.Migrations.Migration)))
+                    .ToList();
+                Log.Information("Reflection found {Count} migration classes in assembly: {Classes}", 
+                    migrationTypes.Count, string.Join(", ", migrationTypes.Select(t => t.Name)));
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Failed to scan assembly types via reflection.");
+            }
+
             var pendingMigrations = (await context.Database.GetPendingMigrationsAsync()).ToList();
             var appliedMigrations = (await context.Database.GetAppliedMigrationsAsync()).ToList();
             
@@ -36,7 +44,7 @@ namespace ChatBot_BE.Data
             else if (appliedMigrations.Count == 0 && pendingMigrations.Count == 0)
             {
                 Log.Error("❌ CRITICAL: EF Core found 0 migrations in assembly '{Assembly}'.", assemblyName);
-                Log.Error("This is why tables are missing. Check your project build/deploy configuration.");
+                Log.Error("This is likely a build/deployment issue where Migrations folder is not being compiled.");
             }
             else
             {

@@ -256,6 +256,10 @@ try
     await context.Database.MigrateAsync();
     app.Logger.LogInformation("Database migrated successfully.");
 
+    // Step 1.5: Seed Master Data (Policy Types and Names)
+    await MasterDataSeeder.SeedAsync(context);
+    app.Logger.LogInformation("Policy master data seeded.");
+
     // Step 2: Seed Roles (Mandatory for Users)
     await RoleSeeder.SeedAsync(context);
     app.Logger.LogInformation("Roles seeded.");

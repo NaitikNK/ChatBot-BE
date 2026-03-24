@@ -77,13 +77,12 @@ namespace ChatBot_BE.Services
             int? currentRoleId = _context.RoleId;
             await _sessions.SaveMessageAsync(conversationId, "user", message, currentUserId, currentRoleId);
 
-            // Configure execution settings for Kimi (OpenAI API)
+            // Configure execution settings — optimized for speed & token efficiency
             var executionSettings = new OpenAIPromptExecutionSettings
             {
                 FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(),
-                Temperature = 1,
-                TopP = 0.9,
-                MaxTokens = 2000
+                Temperature = 0.3,   // Low = concise, deterministic answers
+                MaxTokens = 800      // Sufficient for most insurance replies
             };
 
             try

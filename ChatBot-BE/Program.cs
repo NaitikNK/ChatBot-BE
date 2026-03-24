@@ -239,46 +239,7 @@ try
     var policyStore = scope.ServiceProvider.GetRequiredService<IPolicyStore>();
     var knowledgeBase = scope.ServiceProvider.GetRequiredService<IKnowledgeBaseService>();
 
-    // Diagnostic: Print Connection Host (Masked)
-    var rawConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-    try
-    {
-        var npgsqlBuilder = new Npgsql.NpgsqlConnectionStringBuilder(rawConnectionString);
-        app.Logger.LogInformation("Attempting to connect to Database: {Host}/{Database}", npgsqlBuilder.Host, npgsqlBuilder.Database);
-    }
-    catch
-    {
-        app.Logger.LogWarning("Could not parse connection string for diagnostic logging.");
-    }
-
-    // Step 0: Ensure all tables exist (Render fail-safe)
-    // Reads table definitions dynamically from AppDbContext — no hardcoded names
-    await TableSeeder.EnsureTablesAsync(context);
-    app.Logger.LogInformation("Table existence verified.");
-
-    // Step 1: Migrate DB (Creates tables if they don't exist based on Migrations)
-    await context.Database.MigrateAsync();
-    app.Logger.LogInformation("Database migrated successfully.");
-
-    // Step 1.5: Seed Master Data (Policy Types and Names)
-    await MasterDataSeeder.SeedAsync(context);
-    app.Logger.LogInformation("Policy master data seeded.");
-
-    // Step 2: Seed Roles (Mandatory for Users)
-    await RoleSeeder.SeedAsync(context);
-    app.Logger.LogInformation("Roles seeded.");
-
-    // Step 3: Seed Users (Mandatory for Policies)
-    await UserSeeder.SeedAsync(userStore, context);
-    app.Logger.LogInformation("Users seeded.");
-
-    // Step 4: Seed Policies
-    await PolicySeeder.SeedAsync(policyStore, context);
-    app.Logger.LogInformation("Policies seeded.");
-
-    // Step 5: Knowledge Base
-    await KnowledgeBaseSeeder.SeedAsync(knowledgeBase, app.Environment);
-    app.Logger.LogInformation("Knowledge base seeded.");
+    await DatabaseInitializer.InitializeAsync(context, userStore, policyStore, knowledgeBase, app.Environment);
 }
 catch (Exception ex)
 {

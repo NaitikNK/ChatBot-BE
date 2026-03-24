@@ -29,8 +29,8 @@ namespace ChatBot_BE.Services
         /// </summary>
         public void TrimHistory()
         {
-            const int MaxMessages = 20; // Keep last 20 messages (excluding system message)
-            const int SummaryThreshold = 20; // Create summary after this many messages
+            const int MaxMessages = 5;  // Keep only last 5 messages for token efficiency
+            const int SummaryThreshold = 5; // Summarize as soon as we exceed 5
 
             // Separate system and non-system messages
             var systemMessages = History.Where(m => m.Role == AuthorRole.System).ToList();
@@ -38,11 +38,9 @@ namespace ChatBot_BE.Services
 
             if (otherMessages.Count <= MaxMessages) return;
 
-            // Create summary before trimming if we have enough messages
-            if (otherMessages.Count >= SummaryThreshold && string.IsNullOrEmpty(Summary))
-            {
-                Summary = CreateSummaryFromHistory(otherMessages);
-            }
+            // Build a rolling summary from the messages we're about to trim
+            var messagesToTrim = otherMessages.Take(otherMessages.Count - MaxMessages).ToList();
+            Summary = BuildRollingSummary(Summary, messagesToTrim);
 
             // Keep only the most recent messages
             var messagesToKeep = otherMessages.Skip(otherMessages.Count - MaxMessages).ToList();
@@ -56,10 +54,10 @@ namespace ChatBot_BE.Services
                 History.Add(msg);
             }
             
-            // Add summary as context if available
+            // Inject summary as memory context
             if (!string.IsNullOrEmpty(Summary))
             {
-                History.AddSystemMessage($"[Conversation Summary]\n{Summary}\n[End of Summary]");
+                History.AddSystemMessage($"[Conversation Memory]\n{Summary}\n[End Memory]");
             }
             
             // Add recent messages
@@ -70,25 +68,56 @@ namespace ChatBot_BE.Services
         }
 
         /// <summary>
-        /// Creates a brief summary from conversation history
+        /// Builds a rolling summary by appending new trimmed messages to existing summary.
+        /// Captures both user questions and key assistant actions for full context.
         /// </summary>
-        private static string CreateSummaryFromHistory(List<ChatMessageContent> messages)
+        private static string BuildRollingSummary(string? existingSummary, List<ChatMessageContent> trimmedMessages)
         {
-            var summary = new System.Text.StringBuilder();
-            summary.AppendLine("Key topics discussed:");
-            
-            // Extract key topics from user messages
-            var userMessages = messages.Where(m => m.Role == AuthorRole.User).TakeLast(10);
-            foreach (var msg in userMessages)
+            var sb = new System.Text.StringBuilder();
+
+            // Carry forward existing summary
+            if (!string.IsNullOrWhiteSpace(existingSummary))
+            {
+                sb.AppendLine(existingSummary.Trim());
+            }
+
+            // Add new context from trimmed messages
+            foreach (var msg in trimmedMessages)
             {
                 var text = msg.Content?.Trim();
-                if (!string.IsNullOrEmpty(text) && text.Length < 100)
+                if (string.IsNullOrEmpty(text) || text.Length > 200) continue;
+
+                if (msg.Role == AuthorRole.User)
                 {
-                    summary.AppendLine($"- User inquiry about: {text}");
+                    sb.AppendLine($"- User asked: {Truncate(text, 80)}");
+                }
+                else if (msg.Role == AuthorRole.Assistant)
+                {
+                    // Capture key actions (policy created, viewed, etc.)
+                    if (text.Contains("Policy Number", StringComparison.OrdinalIgnoreCase) ||
+                        text.Contains("successfully", StringComparison.OrdinalIgnoreCase) ||
+                        text.Contains("created", StringComparison.OrdinalIgnoreCase) ||
+                        text.Contains("updated", StringComparison.OrdinalIgnoreCase) ||
+                        text.Contains("deleted", StringComparison.OrdinalIgnoreCase))
+                    {
+                        sb.AppendLine($"- Allison: {Truncate(text, 100)}");
+                    }
                 }
             }
-            
-            return summary.ToString();
+
+            // Cap total summary length to prevent unbounded growth
+            var result = sb.ToString().Trim();
+            if (result.Length > 600)
+            {
+                result = result[..600] + "...";
+            }
+
+            return result;
+        }
+
+        private static string Truncate(string text, int maxLen)
+        {
+            return text.Length <= maxLen ? text : text[..(maxLen - 1)] + "…";
         }
     }
 }

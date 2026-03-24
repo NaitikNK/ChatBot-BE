@@ -112,7 +112,12 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"),
+        npgsqlOptions =>
+        {
+            npgsqlOptions.CommandTimeout(60);              // 60s query timeout (default 30s)
+            npgsqlOptions.EnableRetryOnFailure(3);         // Retry up to 3 times on transient failures
+        }));
 
 // Configure rate limiting
 builder.Services.AddRateLimiter(rateLimiterOptions =>

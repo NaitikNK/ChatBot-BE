@@ -18,9 +18,42 @@ namespace ChatBot_BE.Data
             IWebHostEnvironment environment)
         {
             // Step 1: Apply all pending migrations (creates tables + schema changes)
-            Log.Information("Applying database migrations...");
-            await context.Database.MigrateAsync();
-            Log.Information("Database migrated successfully.");
+            Log.Information("Checking for database migrations...");
+            var pendingMigrations = (await context.Database.GetPendingMigrationsAsync()).ToList();
+            var appliedMigrations = (await context.Database.GetAppliedMigrationsAsync()).ToList();
+            
+            Log.Information("Applied Migrations: {Count}", appliedMigrations.Count);
+            if (pendingMigrations.Any())
+            {
+                Log.Information("Found {Count} pending migrations. Applying...");
+                await context.Database.MigrateAsync();
+                Log.Information("Migrations applied successfully.");
+            }
+            else
+            {
+                Log.Information("No pending migrations. Database is up to date according to history.");
+            }
+
+            // [CRITICAL CHECK] Verify core tables actually exist
+            // Sometimes __EFMigrationsHistory is out of sync with actual tables on Render
+            Log.Information("Verifying critical tables exist...");
+            var tableExists = await DoesTableExistAsync(context, "PolicyTypes");
+            if (!tableExists)
+            {
+                Log.Warning("⚠️ Table 'PolicyTypes' is missing despite Migrations history.");
+                Log.Warning("Attempting emergency recovery using EnsureCreatedAsync...");
+                
+                // EnsureCreated creates the database and all tables if they don't exist
+                // It will bypass __EFMigrationsHistory if that table is corrupted
+                await context.Database.EnsureCreatedAsync();
+                Log.Information("Recovery EnsureCreated completed.");
+                
+                // Final check
+                if (!await DoesTableExistAsync(context, "PolicyTypes"))
+                {
+                    throw new InvalidOperationException("FATAL: Database schema could not be created. Relation 'PolicyTypes' still missing.");
+                }
+            }
 
             // Step 2: Seed master data (Policy Types and Names)
             await MasterDataSeeder.SeedAsync(context);
@@ -43,6 +76,28 @@ namespace ChatBot_BE.Data
             Log.Information("Knowledge base seeded.");
 
             Log.Information("Database initialization completed successfully.");
+        }
+
+        private static async Task<bool> DoesTableExistAsync(AppDbContext context, string tableName)
+        {
+            try
+            {
+                using var command = context.Database.GetDbConnection().CreateCommand();
+                command.CommandText = $"SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = '{tableName}'";
+                
+                if (context.Database.GetDbConnection().State != System.Data.ConnectionState.Open)
+                {
+                    await context.Database.OpenConnectionAsync();
+                }
+                
+                var count = (long?)await command.ExecuteScalarAsync();
+                return count > 0;
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Error checking table existence for {TableName}", tableName);
+                return false;
+            }
         }
     }
 }

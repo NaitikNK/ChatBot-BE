@@ -115,8 +115,10 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"),
         npgsqlOptions =>
         {
-            npgsqlOptions.CommandTimeout(60);              // 60s query timeout (default 30s)
-            npgsqlOptions.EnableRetryOnFailure(3);         // Retry up to 3 times on transient failures
+            npgsqlOptions.CommandTimeout(60);
+            npgsqlOptions.EnableRetryOnFailure(3);
+            // Explicitly set assembly to ensure migrations are found on Render
+            npgsqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.GetName().Name);
         }));
 
 // Configure rate limiting

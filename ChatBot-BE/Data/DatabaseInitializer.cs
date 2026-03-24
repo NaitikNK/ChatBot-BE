@@ -19,15 +19,24 @@ namespace ChatBot_BE.Data
         {
             // Step 1: Apply all pending migrations (creates tables + schema changes)
             Log.Information("Checking for database migrations...");
+            var assemblyName = typeof(AppDbContext).Assembly.GetName().Name;
+            Log.Information("EF Core is searching for migrations in assembly: {Assembly}", assemblyName);
+            
             var pendingMigrations = (await context.Database.GetPendingMigrationsAsync()).ToList();
             var appliedMigrations = (await context.Database.GetAppliedMigrationsAsync()).ToList();
             
-            Log.Information("Applied Migrations: {Count}", appliedMigrations.Count);
+            Log.Information("Migrations Found - Applied: {Applied}, Pending: {Pending}", appliedMigrations.Count, pendingMigrations.Count);
+            
             if (pendingMigrations.Any())
             {
-                Log.Information("Found {Count} pending migrations. Applying...");
+                Log.Information("Applying {Count} migrations...", pendingMigrations.Count);
                 await context.Database.MigrateAsync();
                 Log.Information("Migrations applied successfully.");
+            }
+            else if (appliedMigrations.Count == 0 && pendingMigrations.Count == 0)
+            {
+                Log.Error("❌ CRITICAL: EF Core found 0 migrations in assembly '{Assembly}'.", assemblyName);
+                Log.Error("This is why tables are missing. Check your project build/deploy configuration.");
             }
             else
             {

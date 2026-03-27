@@ -28,7 +28,9 @@ namespace ChatBot_BE.Services
             [Description("User's policy number. Leave empty to auto-generate.")] string? policyNumber = null,
             [Description("Policy type: Personal, Vehicle, or Medical")] string policyType = "Personal",
             [Description("Policy name (e.g., Personal Shield Plan, Auto Insurance, Car Protection Plan, etc.)")] string? policyName = null,
-            [Description("User's phone number")] string? phoneNumber = null)
+            [Description("User's phone number (10 digits)")] string? phoneNumber = null,
+            [Description("User's date of birth (ISO format: YYYY-MM-DD)")] string? dateOfBirth = null,
+            [Description("User's zip/postal code (5-6 digits)")] string? postalCode = null)
         {
             if (!_context.IsAuthenticated)
             {
@@ -39,6 +41,9 @@ namespace ChatBot_BE.Services
             {
                 policyNumber = "POL-" + Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper();
             }
+
+            var validationError = ValidateUserData(email, phoneNumber, dateOfBirth, postalCode, out var dob, isUpdate: false);
+            if (validationError != null) return validationError;
 
             try
             {
@@ -51,6 +56,8 @@ namespace ChatBot_BE.Services
                     PolicyType = policyType,
                     PolicyName = policyName,
                     PhoneNumber = phoneNumber,
+                    DateOfBirth = dob,
+                    PostalCode = postalCode,
                     OwnerSessionId = _context.ConversationId,
                     UserId = _context.UserId // Assign the current user's ID
                 });
@@ -147,7 +154,10 @@ namespace ChatBot_BE.Services
             [Description("User's policy number")] string policyNumber,
             [Description("User's new first name")] string? firstName = null,
             [Description("User's new last name")] string? lastName = null,
-            [Description("User's new email address")] string? email = null)
+            [Description("User's new email address")] string? email = null,
+            [Description("User's new phone number (10 digits)")] string? phoneNumber = null,
+            [Description("User's new date of birth (ISO format: YYYY-MM-DD)")] string? dateOfBirth = null,
+            [Description("User's new zip/postal code (5-6 digits)")] string? postalCode = null)
         {
             if (!_context.IsAuthenticated)
             {
@@ -164,15 +174,16 @@ namespace ChatBot_BE.Services
                 return "⛔ Access Denied. You are not authorized to update this record.";
             }
 
-            // [NEW] Block updates to system-default records
-            if (policy.OwnerSessionId == SeededRecordId)
-            {
-                return "❌ Error: System-default records cannot be modified.";
-            }
-
             if (firstName != null) policy.FirstName = firstName;
             if (lastName != null) policy.LastName = lastName;
+
+            var validationError = ValidateUserData(email, phoneNumber, dateOfBirth, postalCode, out var dob, isUpdate: true);
+            if (validationError != null) return validationError;
+
             if (email != null) policy.Email = email;
+            if (phoneNumber != null) policy.PhoneNumber = phoneNumber;
+            if (postalCode != null) policy.PostalCode = postalCode;
+            if (dob != null) policy.DateOfBirth = dob;
 
             try
             {
@@ -213,6 +224,71 @@ namespace ChatBot_BE.Services
 
             var ok = await _policies.DeleteAsync(policy.Id);
             return ok ? $"TOOL RESULT: Record deleted successfully." : "❌ Failed to delete record.";
+        }
+
+        private string? ValidateUserData(string? email, string? phoneNumber, string? dateOfBirth, string? postalCode, out DateTime? dob, bool isUpdate)
+        {
+            dob = null;
+
+            // Date of Birth Validation
+            if (!string.IsNullOrWhiteSpace(dateOfBirth))
+            {
+                if (DateTime.TryParse(dateOfBirth, out var result))
+                {
+                    if (result > DateTime.Today) return "❌ Error: Date of birth cannot be in the future.";
+                    if (result > DateTime.Today.AddYears(-1)) return "❌ Error: User must be at least 1 year old.";
+                    dob = result;
+                }
+                else
+                {
+                    return "❌ Error: Invalid date format for Date of Birth. Please use YYYY-MM-DD.";
+                }
+            }
+            else if (!isUpdate)
+            {
+                return "❌ Error: Date of birth is required.";
+            }
+
+            // Email Validation
+            if (email != null)
+            {
+                if (string.IsNullOrWhiteSpace(email) || !email.EndsWith(".com", StringComparison.OrdinalIgnoreCase))
+                {
+                    return "❌ Error: Email must be a valid .com address.";
+                }
+            }
+            else if (!isUpdate)
+            {
+                return "❌ Error: Email is required.";
+            }
+
+            // Phone Validation
+            if (phoneNumber != null)
+            {
+                if (string.IsNullOrWhiteSpace(phoneNumber) || !Regex.IsMatch(phoneNumber, @"^\d{10}$"))
+                {
+                    return "❌ Error: Phone number must be exactly 10 digits.";
+                }
+            }
+            else if (!isUpdate)
+            {
+                return "❌ Error: Phone number is required.";
+            }
+
+            // Zip Code Validation
+            if (postalCode != null)
+            {
+                if (string.IsNullOrWhiteSpace(postalCode) || !Regex.IsMatch(postalCode, @"^\d{5,6}$"))
+                {
+                    return "❌ Error: Zip code must be 5 or 6 digits.";
+                }
+            }
+            else if (!isUpdate)
+            {
+                return "❌ Error: Zip code is required.";
+            }
+
+            return null;
         }
     }
 }

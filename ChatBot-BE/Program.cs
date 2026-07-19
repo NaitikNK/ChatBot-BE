@@ -185,23 +185,32 @@ builder.Services.AddScoped<IPolicyService, PolicyService>();
 builder.Services.AddSingleton<IKnowledgeBaseService, InMemoryKnowledgeBaseService>();
 builder.Services.AddScoped<KnowledgeBasePlugin>();
 
-// Semantic Kernel setup with OpenAI (Kimi K2 via NVIDIA)
-var openAiApiKey = builder.Configuration["OpenAI:ApiKey"]
-    ?? throw new InvalidOperationException("Missing OpenAI:ApiKey in configuration.");
-var openAiModelId = builder.Configuration["OpenAI:ModelId"]
-    ?? throw new InvalidOperationException("Missing OpenAI:ModelId in configuration.");
-var openAiEndpoint = builder.Configuration["OpenAI:Endpoint"]
-    ?? throw new InvalidOperationException("Missing OpenAI:Endpoint in configuration.");
+// Semantic Kernel setup with Gemini through its OpenAI-compatible endpoint.
+var configuredGeminiOptions = builder.Configuration
+    .GetSection(GeminiOptions.SectionName)
+    .Get<GeminiOptions>()
+    ?? throw new InvalidOperationException("Missing Gemini configuration.");
+var geminiOptions = GeminiOptions.ValidateAndNormalize(
+    configuredGeminiOptions,
+    builder.Environment.IsDevelopment());
+var geminiEndpoint = new Uri(geminiOptions.Endpoint);
+
+builder.Services.AddSingleton(geminiOptions);
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<GeminiKeyPool>();
+builder.Services.AddTransient<GeminiFailoverHandler>();
+builder.Services.AddHttpClient("Gemini", client => client.BaseAddress = geminiEndpoint)
+    .AddHttpMessageHandler<GeminiFailoverHandler>();
 
 builder.Services.AddScoped<UserManagementPlugin>();
 builder.Services.AddScoped(sp =>
 {
     var kernelBuilder = Kernel.CreateBuilder();
 
-    var httpClient = new HttpClient { BaseAddress = new Uri(openAiEndpoint) };
+    var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient("Gemini");
     kernelBuilder.AddOpenAIChatCompletion(
-        modelId: openAiModelId,
-        apiKey: openAiApiKey,
+        modelId: geminiOptions.ModelId,
+        apiKey: geminiOptions.ApiKeys[0],
         httpClient: httpClient);
 
     var userPlugin = sp.GetRequiredService<UserManagementPlugin>();

@@ -4,8 +4,6 @@ using ChatBot_BE.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace ChatBot_BE.Controllers
 {
@@ -33,7 +31,7 @@ namespace ChatBot_BE.Controllers
         /// <param name="request">The chat request containing the user message and optional conversation ID.</param>
         /// <returns>A chat reply with the AI's response and conversation ID.</returns>
         [HttpPost("chat")]
-        public async Task<IActionResult> Chat([FromBody] ChatRequest request, [FromServices] IWebHostEnvironment env)
+        public async Task<IActionResult> Chat([FromBody] ChatRequest request)
         {
             try
             {
@@ -108,7 +106,18 @@ namespace ChatBot_BE.Controllers
                     } 
                 });
             }
-            catch (Exception ex)
+            catch (GeminiServiceUnavailableException ex)
+            {
+                var retryAfterSeconds = Math.Max(1, (int)Math.Ceiling(ex.RetryAfter.TotalSeconds));
+                Response.Headers.RetryAfter = retryAfterSeconds.ToString();
+
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, new ApiResponse<object>
+                {
+                    Success = false,
+                    Error = "The AI service is temporarily unavailable. Please try again shortly."
+                });
+            }
+            catch (Exception)
             {
                 // Temporarily expose full error to find the root cause on Render
                 // We will revert this to 'Generic Error' once debugging is complete
@@ -134,11 +143,5 @@ namespace ChatBot_BE.Controllers
             });
         }
 
-        private static string ToShortHash(string input)
-        {
-            var bytes = Encoding.UTF8.GetBytes(input ?? string.Empty);
-            var hash = SHA256.HashData(bytes);
-            return Convert.ToHexString(hash)[..16].ToLowerInvariant();
-        }
     }
 }

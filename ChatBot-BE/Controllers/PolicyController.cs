@@ -181,7 +181,7 @@ namespace ChatBot_BE.Controllers
 
                 return CreatedAtAction(nameof(Get), new { id = created.Id }, new ApiResponse<PolicyResponse> { Success = true, Data = await ToResponseAsync(created) });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return StatusCode(500, new ApiResponse<PolicyResponse> { Success = false, Error = "An error occurred while creating the policy." });
             }
@@ -228,7 +228,7 @@ namespace ChatBot_BE.Controllers
                 });
                 return Ok(new ApiResponse<object> { Success = ok });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return StatusCode(500, new ApiResponse<object> { Success = false, Error = "An error occurred while updating the policy." });
             }

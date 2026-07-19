@@ -30,7 +30,6 @@ namespace ChatBot_BE.Services
         public void TrimHistory()
         {
             const int MaxMessages = 5;  // Keep only last 5 messages for token efficiency
-            const int SummaryThreshold = 5; // Summarize as soon as we exceed 5
 
             // Separate system and non-system messages
             var systemMessages = History.Where(m => m.Role == AuthorRole.System).ToList();

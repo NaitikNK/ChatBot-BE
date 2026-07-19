@@ -69,6 +69,24 @@ public class GeminiConfigurationTests
             .WithMessage("*placeholder API keys*");
     }
 
+    [Fact]
+    public void ParseApiKeysJson_ReadsSingleEnvironmentVariableArray()
+    {
+        var keys = GeminiOptions.ParseApiKeysJson("[\"actual-1\",\"actual-2\",\"actual-3\"]");
+
+        keys.Should().Equal("actual-1", "actual-2", "actual-3");
+    }
+
+    [Fact]
+    public void ParseApiKeysJson_RejectsNonArrayValue()
+    {
+        var action = () => GeminiOptions.ParseApiKeysJson("actual-1,actual-2");
+
+        action.Should()
+            .Throw<InvalidOperationException>()
+            .WithMessage("*JSON array*");
+    }
+
     private static GeminiOptions CreateOptions(string[] keys) => new()
     {
         ApiKeys = keys,

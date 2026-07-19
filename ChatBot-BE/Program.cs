@@ -190,6 +190,20 @@ var configuredGeminiOptions = builder.Configuration
     .GetSection(GeminiOptions.SectionName)
     .Get<GeminiOptions>()
     ?? throw new InvalidOperationException("Missing Gemini configuration.");
+
+var apiKeysJson = builder.Configuration[$"{GeminiOptions.SectionName}:ApiKeys"];
+if (!string.IsNullOrWhiteSpace(apiKeysJson))
+{
+    configuredGeminiOptions = new GeminiOptions
+    {
+        ApiKeys = GeminiOptions.ParseApiKeysJson(apiKeysJson),
+        ModelId = configuredGeminiOptions.ModelId,
+        Endpoint = configuredGeminiOptions.Endpoint,
+        CooldownSeconds = configuredGeminiOptions.CooldownSeconds,
+        MaxAttempts = configuredGeminiOptions.MaxAttempts
+    };
+}
+
 var geminiOptions = GeminiOptions.ValidateAndNormalize(
     configuredGeminiOptions,
     builder.Environment.IsDevelopment());

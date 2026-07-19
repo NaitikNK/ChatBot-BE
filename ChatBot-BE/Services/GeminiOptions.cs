@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace ChatBot_BE.Services
 {
     public sealed class GeminiOptions
@@ -14,6 +16,22 @@ namespace ChatBot_BE.Services
 
         public static bool IsPlaceholderKey(string key) =>
             key.StartsWith("api-", StringComparison.OrdinalIgnoreCase);
+
+        public static string[] ParseApiKeysJson(string json)
+        {
+            try
+            {
+                return JsonSerializer.Deserialize<string[]>(json)
+                    ?? throw new InvalidOperationException(
+                        "Gemini:ApiKeys must be a JSON array of strings.");
+            }
+            catch (JsonException ex)
+            {
+                throw new InvalidOperationException(
+                    "Gemini:ApiKeys must be a JSON array such as [\"key-1\",\"key-2\"].",
+                    ex);
+            }
+        }
 
         public static GeminiOptions ValidateAndNormalize(GeminiOptions configured, bool isDevelopment)
         {

@@ -1,13 +1,12 @@
-using ChatBot_BE.Services;
 using ChatBot_BE.Data;
-using Microsoft.SemanticKernel;
+using ChatBot_BE.Services;
+using ChatBot_BE.Shared;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.SemanticKernel.Connectors.OpenAI;
+using Microsoft.SemanticKernel;
 using Serilog;
 using Serilog.Events;
-using System.Threading.RateLimiting;
-using ChatBot_BE.Shared;
 using System.Reflection;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
